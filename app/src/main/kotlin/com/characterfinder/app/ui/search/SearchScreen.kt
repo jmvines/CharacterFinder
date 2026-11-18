@@ -7,12 +7,14 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -121,6 +123,7 @@ fun SearchScreen(
                 }
                 StatusMessage(
                     state = state,
+                    onRetry = viewModel::retry,
                     modifier = Modifier.align(Alignment.Center),
                 )
             }
@@ -136,6 +139,7 @@ fun SearchScreen(
 @Composable
 private fun StatusMessage(
     state: SearchUiState,
+    onRetry: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val message = when (state) {
@@ -155,6 +159,12 @@ private fun StatusMessage(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
         )
+        if (state is SearchUiState.Error) {
+            Spacer(modifier = Modifier.height(16.dp))
+            Button(onClick = onRetry) {
+                Text(stringResource(R.string.retry))
+            }
+        }
     }
 }
 

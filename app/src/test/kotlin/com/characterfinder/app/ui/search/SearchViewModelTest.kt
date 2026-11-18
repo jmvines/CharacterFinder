@@ -120,6 +120,32 @@ class SearchViewModelTest {
     }
 
     @Test
+    fun `reintentar tras un error relanza la misma busqueda sin esperar al debounce`() = runTest {
+        var failing = true
+        repository.resultsForQuery = { query ->
+            if (failing) error("fallo de red simulado") else listOf(characterStub(1, query))
+        }
+        val viewModel = viewModel()
+
+        viewModel.uiState.test {
+            assertEquals(SearchUiState.Idle, awaitItem())
+
+            viewModel.onQueryChange("rick")
+            advanceTimeBy(400)
+            assertEquals(SearchUiState.Loading, awaitItem())
+            assertEquals(SearchUiState.Error, awaitItem())
+
+            failing = false
+            viewModel.retry()
+
+            assertEquals(SearchUiState.Loading, awaitItem())
+            val success = awaitItem() as SearchUiState.Success
+            assertEquals(listOf("rick"), success.characters.map { it.name })
+            assertEquals(listOf("rick", "rick"), repository.searchedQueries)
+        }
+    }
+
+    @Test
     fun `un fallo de red emite Error`() = runTest {
         repository.resultsForQuery = { error("fallo de red simulado") }
         val viewModel = viewModel()

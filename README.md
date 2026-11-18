@@ -63,13 +63,13 @@ resultados de la segunda.
 - El reloj se inyecta como `() -> Long`, de modo que los tests de expiración mueven el tiempo
   sin esperas reales.
 
-## Tests (17)
+## Tests (18)
 
 | Módulo | Qué cubre |
 |---|---|
 | `:domain` (4) | Casos de uso con repositorio fake: query en blanco no toca el repo, trim, delegación |
 | `:data` (8) | Caché: hit dentro del TTL, expiración, entradas por query. Repositorio: segunda búsqueda sin red, expiración vuelve a red, normalización de clave, 404 → lista vacía |
-| `:app` (5) | ViewModel con `coroutines-test` + Turbine: **cancelación de la búsqueda anterior**, debounce, blank → Idle, sin resultados → Empty, fallo → Error |
+| `:app` (6) | ViewModel con `coroutines-test` + Turbine: **cancelación de la búsqueda anterior**, debounce, blank → Idle, sin resultados → Empty, fallo → Error, reintento tras error |
 
 ## Decisiones principales
 
