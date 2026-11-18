@@ -1,5 +1,7 @@
 # CharacterFinder
 
+[![CI](https://github.com/jmvines/CharacterFinder/actions/workflows/ci.yml/badge.svg)](https://github.com/jmvines/CharacterFinder/actions/workflows/ci.yml)
+
 App Android de ejemplo para la prueba técnica: busca personajes de Rick & Morty y muestra su
 detalle, con arquitectura en capas, cancelación de búsquedas en curso, caché con expiración y
 tests unitarios.
