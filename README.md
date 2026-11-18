@@ -70,14 +70,14 @@ resultados de la segunda.
 - El reloj se inyecta como `() -> Long`, de modo que los tests de expiración mueven el tiempo
   sin esperas reales.
 
-## Tests (36)
+## Tests (37)
 
 | Módulo | Qué cubre |
 |---|---|
 | `:domain` (4) | Casos de uso con repositorio fake: query en blanco no toca el repo, trim, delegación |
 | `:data` (10) | Caché: hit dentro del TTL, expiración, entradas por query. Repositorio: segunda búsqueda sin red, expiración vuelve a red, normalización de clave, 404 → lista vacía, 5xx → `Server`, fallo de red → `Connectivity` |
 | `:app` (9) | ViewModels con `coroutines-test` + Turbine. Búsqueda: **cancelación de la búsqueda anterior**, debounce, blank → Idle, sin resultados → Empty, fallo → Error, reintento tras error. Detalle: carga del id solicitado, fallo → Error, reintento tras error |
-| `:app` semantics (13) | Contrato de accesibilidad en JVM (Robolectric + compose-ui-test, sin emulador): etiquetas, live regions, encabezado, campos fusionados, rol de botón y posición en lista |
+| `:app` semantics (14) | Contrato de accesibilidad en JVM (Robolectric + compose-ui-test, sin emulador): etiquetas, live regions, encabezado, campos fusionados, rol de botón, posición en lista y acción Buscar del teclado |
 
 ## Accesibilidad
 
