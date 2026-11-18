@@ -80,10 +80,10 @@ resultados de la segunda.
 
 ## Accesibilidad
 
-Las dos pantallas están preparadas para TalkBack y probadas con él en dispositivo físico: la lista de
-resultados expone `collectionInfo`/`collectionItemInfo` (anuncia "elemento N de M"), los cambios
-de estado (cargando, error, sin resultados) se anuncian mediante live regions, y el detalle
-marca su título como heading para la navegación por encabezados.
+Accesibilidad con TalkBack probada en dispositivo físico: etiquetas, anuncios de los cambios de
+estado (cargando, error, sin resultados) mediante live regions, encabezado del detalle para la
+navegación por encabezados y flujo de error con reintento. La lista de resultados expone además
+la posición de cada elemento vía `collectionInfo`/`collectionItemInfo`.
 
 ## Integración continua
 
