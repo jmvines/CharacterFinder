@@ -11,7 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -19,12 +19,22 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.CollectionInfo
+import androidx.compose.ui.semantics.CollectionItemInfo
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.collectionInfo
+import androidx.compose.ui.semantics.collectionItemInfo
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -41,6 +51,19 @@ fun SearchScreen(
     val query by viewModel.query.collectAsStateWithLifecycle()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
+    // announceForAccessibility: las liveRegion de Compose no anuncian de forma fiable
+    // estos cambios de estado (verificado con TalkBack en dispositivo).
+    val view = LocalView.current
+    LaunchedEffect(uiState) {
+        val state = uiState
+        if (state is SearchUiState.Success) {
+            val count = state.characters.size
+            view.announceForAccessibility(
+                view.context.resources.getQuantityString(R.plurals.search_results_count, count, count),
+            )
+        }
+    }
+
     Scaffold { padding ->
         Column(
             modifier = Modifier
@@ -56,39 +79,78 @@ fun SearchScreen(
                 label = { Text(stringResource(R.string.search_hint)) },
                 singleLine = true,
             )
-            when (val state = uiState) {
-                SearchUiState.Idle -> CenteredMessage(stringResource(R.string.search_idle))
-                SearchUiState.Loading -> Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    CircularProgressIndicator()
-                }
-                SearchUiState.Empty -> CenteredMessage(stringResource(R.string.search_empty))
-                SearchUiState.Error -> CenteredMessage(stringResource(R.string.search_error))
-                is SearchUiState.Success -> LazyColumn(modifier = Modifier.fillMaxSize()) {
-                    items(state.characters, key = { it.id }) { character ->
-                        CharacterRow(
-                            character = character,
-                            onClick = { onCharacterClick(character.id) },
-                        )
+            Box(modifier = Modifier.fillMaxSize()) {
+                val state = uiState
+                if (state is SearchUiState.Success) {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .semantics {
+                                collectionInfo = CollectionInfo(
+                                    rowCount = state.characters.size,
+                                    columnCount = 1,
+                                )
+                            },
+                    ) {
+                        itemsIndexed(state.characters, key = { _, character -> character.id }) { index, character ->
+                            CharacterRow(
+                                character = character,
+                                onClick = { onCharacterClick(character.id) },
+                                modifier = Modifier.semantics {
+                                    collectionItemInfo = CollectionItemInfo(
+                                        rowIndex = index,
+                                        rowSpan = 1,
+                                        columnIndex = 0,
+                                        columnSpan = 1,
+                                    )
+                                },
+                            )
+                        }
                     }
                 }
+                if (state is SearchUiState.Loading) {
+                    val loadingLabel = stringResource(R.string.loading)
+                    CircularProgressIndicator(
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .semantics {
+                                contentDescription = loadingLabel
+                                liveRegion = LiveRegionMode.Polite
+                            },
+                    )
+                }
+                StatusMessage(
+                    state = state,
+                    modifier = Modifier.align(Alignment.Center),
+                )
             }
         }
     }
 }
 
+/**
+ * Mensaje de estado sobre un nodo de texto que existe en TODOS los estados: TalkBack solo
+ * anuncia una liveRegion cuando cambia el texto de un nodo existente, no cuando el nodo
+ * aparece de cero, así que el Text debe persistir entre recomposiciones (vacío si no aplica).
+ */
 @Composable
-private fun CenteredMessage(message: String) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(32.dp),
-        contentAlignment = Alignment.Center,
+private fun StatusMessage(
+    state: SearchUiState,
+    modifier: Modifier = Modifier,
+) {
+    val message = when (state) {
+        SearchUiState.Idle -> stringResource(R.string.search_idle)
+        SearchUiState.Empty -> stringResource(R.string.search_empty)
+        SearchUiState.Error -> stringResource(R.string.search_error)
+        SearchUiState.Loading, is SearchUiState.Success -> ""
+    }
+    Column(
+        modifier = modifier.padding(32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
             text = message,
+            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
@@ -97,9 +159,13 @@ private fun CenteredMessage(message: String) {
 }
 
 @Composable
-private fun CharacterRow(character: Character, onClick: () -> Unit) {
+private fun CharacterRow(
+    character: Character,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = onClick, role = Role.Button)
             .padding(horizontal = 16.dp, vertical = 8.dp),

@@ -29,6 +29,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -63,13 +68,21 @@ fun DetailScreen(
         },
     ) { padding ->
         when (val state = uiState) {
-            DetailUiState.Loading -> Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-                contentAlignment = Alignment.Center,
-            ) {
-                CircularProgressIndicator()
+            DetailUiState.Loading -> {
+                val loadingLabel = stringResource(R.string.loading)
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(padding),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.semantics {
+                            contentDescription = loadingLabel
+                            liveRegion = LiveRegionMode.Polite
+                        },
+                    )
+                }
             }
             DetailUiState.Error -> Column(
                 modifier = Modifier
@@ -81,6 +94,7 @@ fun DetailScreen(
             ) {
                 Text(
                     text = stringResource(R.string.search_error),
+                    modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
                     style = MaterialTheme.typography.bodyLarge,
                     textAlign = TextAlign.Center,
                 )
@@ -114,7 +128,11 @@ private fun CharacterDetail(character: Character, modifier: Modifier = Modifier)
                 .clip(RoundedCornerShape(16.dp)),
         )
         Spacer(modifier = Modifier.height(16.dp))
-        Text(text = character.name, style = MaterialTheme.typography.headlineSmall)
+        Text(
+            text = character.name,
+            modifier = Modifier.semantics { heading() },
+            style = MaterialTheme.typography.headlineSmall,
+        )
         Spacer(modifier = Modifier.height(16.dp))
         DetailField(stringResource(R.string.detail_status), character.status)
         DetailField(stringResource(R.string.detail_species), character.species)
@@ -129,6 +147,7 @@ private fun CharacterDetail(character: Character, modifier: Modifier = Modifier)
 private fun DetailField(label: String, value: String) {
     Row(modifier = Modifier
         .fillMaxWidth()
+        .semantics(mergeDescendants = true) {}
         .padding(vertical = 6.dp)) {
         Text(
             text = label,

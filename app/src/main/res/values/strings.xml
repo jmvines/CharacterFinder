@@ -6,6 +6,11 @@
     <string name="search_empty">Sin resultados para esa búsqueda</string>
     <string name="search_error">Algo ha fallado. Revisa tu conexión e inténtalo de nuevo.</string>
     <string name="retry">Reintentar</string>
+    <string name="loading">Cargando</string>
+    <plurals name="search_results_count">
+        <item quantity="one">%d resultado encontrado</item>
+        <item quantity="other">%d resultados encontrados</item>
+    </plurals>
     <string name="back">Volver</string>
     <string name="detail_title">Detalle</string>
     <string name="detail_status">Estado</string>
