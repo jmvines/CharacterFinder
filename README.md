@@ -80,10 +80,10 @@ resultados de la segunda.
 
 ## Accesibilidad
 
-Accesibilidad con TalkBack probada en dispositivo físico: etiquetas, anuncios de los cambios de
-estado (cargando, error, sin resultados) mediante live regions, encabezado del detalle para la
-navegación por encabezados y flujo de error con reintento. La lista de resultados expone además
-la posición de cada elemento vía `collectionInfo`/`collectionItemInfo`.
+Accesibilidad con TalkBack verificada en dispositivo físico: etiquetas, anuncios de los cambios
+de estado (cargando, error, sin resultados) mediante live regions, encabezado del detalle para
+la navegación por encabezados, flujo de error con reintento y anuncio de la posición en la lista
+de resultados ("elemento N de M") vía `collectionInfo`/`collectionItemInfo`.
 
 ## Integración continua
 
