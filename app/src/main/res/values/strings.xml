@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">CharacterFinder</string>
+    <string name="app_name">Character Finder</string>
     <string name="search_hint">Busca un personaje</string>
     <string name="search_idle">Escribe un nombre para buscar personajes de Rick y Morty</string>
     <string name="search_empty">Sin resultados para esa búsqueda</string>
