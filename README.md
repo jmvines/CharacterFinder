@@ -73,6 +73,23 @@ resultados de la segunda.
 | `:data` (8) | Caché: hit dentro del TTL, expiración, entradas por query. Repositorio: segunda búsqueda sin red, expiración vuelve a red, normalización de clave, 404 → lista vacía |
 | `:app` (6) | ViewModel con `coroutines-test` + Turbine: **cancelación de la búsqueda anterior**, debounce, blank → Idle, sin resultados → Empty, fallo → Error, reintento tras error |
 
+## Integración continua
+
+Workflow de GitHub Actions ([`ci.yml`](.github/workflows/ci.yml)) que corre en cada push a
+`main`, en cada pull request y bajo demanda (`workflow_dispatch`, botón "Run workflow" en la
+pestaña Actions):
+
+1. **Tests unitarios** de los tres módulos, como paso explícito.
+2. **Build completo con lint** de Android (`./gradlew build`).
+3. Publica dos artifacts descargables en cada run:
+   - `character-finder-debug` — APK de debug instalable, para probar la app sin compilar nada.
+   - `informes-de-tests` — informes HTML de Gradle, subidos también cuando los tests fallan
+     (`if: always()`), que es cuando más se necesitan.
+
+Corre en `ubuntu-latest` con JDK 17 (Temurin) y caché de Gradle entre runs, y declara
+`permissions: contents: read` (mínimo privilegio). El badge de arriba refleja el estado del
+último run en `main`.
+
 ## Decisiones principales
 
 - **Koin** como DI: ligera y suficiente para este tamaño; los ViewModels reciben casos de uso
