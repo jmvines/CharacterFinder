@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.characterfinder.app.R
+import com.characterfinder.app.ui.messageRes
 import com.characterfinder.domain.model.Character
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -84,7 +85,7 @@ fun DetailScreen(
                     )
                 }
             }
-            DetailUiState.Error -> Column(
+            is DetailUiState.Error -> Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding)
@@ -93,7 +94,7 @@ fun DetailScreen(
                 verticalArrangement = androidx.compose.foundation.layout.Arrangement.Center,
             ) {
                 Text(
-                    text = stringResource(R.string.search_error),
+                    text = stringResource(state.error.messageRes()),
                     modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
                     style = MaterialTheme.typography.bodyLarge,
                     textAlign = TextAlign.Center,

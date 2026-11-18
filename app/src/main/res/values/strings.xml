@@ -4,7 +4,9 @@
     <string name="search_hint">Busca un personaje</string>
     <string name="search_idle">Escribe un nombre para buscar personajes de Rick y Morty</string>
     <string name="search_empty">Sin resultados para esa búsqueda</string>
-    <string name="search_error">Algo ha fallado. Revisa tu conexión e inténtalo de nuevo.</string>
+    <string name="error_connectivity">No hay conexión. Revisa tu internet e inténtalo de nuevo.</string>
+    <string name="error_server">Nuestros servidores no responden. Inténtalo en un momento.</string>
+    <string name="error_generic">Algo ha fallado. Inténtalo de nuevo.</string>
     <string name="retry">Reintentar</string>
     <string name="loading">Cargando</string>
     <plurals name="search_results_count">

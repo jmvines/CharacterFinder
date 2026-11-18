@@ -13,6 +13,8 @@ import androidx.compose.ui.test.onNodeWithText
 import com.characterfinder.app.ui.theme.CharacterFinderTheme
 import com.characterfinder.domain.model.Character
 import com.characterfinder.domain.repository.CharacterRepository
+import com.characterfinder.domain.result.DomainError
+import com.characterfinder.domain.result.Either
 import com.characterfinder.domain.usecase.SearchCharactersUseCase
 import kotlinx.coroutines.delay
 import org.junit.Assert.assertEquals
@@ -39,14 +41,15 @@ class SearchScreenSemanticsTest {
 
     private class FakeCharacterRepository : CharacterRepository {
         var responseDelayMillis = 0L
-        var resultsForQuery: (String) -> List<Character> = { emptyList() }
+        var resultsForQuery: (String) -> Either<DomainError, List<Character>> = { Either.Right(emptyList()) }
 
-        override suspend fun search(query: String): List<Character> {
+        override suspend fun search(query: String): Either<DomainError, List<Character>> {
             delay(responseDelayMillis)
             return resultsForQuery(query)
         }
 
-        override suspend fun getCharacter(id: Int): Character = error("sin uso en estos tests")
+        override suspend fun getCharacter(id: Int): Either<DomainError, Character> =
+            error("sin uso en estos tests")
     }
 
     private val repository = FakeCharacterRepository()
@@ -94,7 +97,7 @@ class SearchScreenSemanticsTest {
 
     @Test
     fun `la lista expone el numero total de elementos`() {
-        repository.resultsForQuery = { listOf(stub(1, "Rick Sanchez"), stub(2, "Alien Rick"), stub(3, "Aqua Rick")) }
+        repository.resultsForQuery = { Either.Right(listOf(stub(1, "Rick Sanchez"), stub(2, "Alien Rick"), stub(3, "Aqua Rick"))) }
         setScreen().search("rick")
 
         val collectionInfo = compose
@@ -107,7 +110,7 @@ class SearchScreenSemanticsTest {
 
     @Test
     fun `cada fila expone su posicion en la lista`() {
-        repository.resultsForQuery = { listOf(stub(1, "Rick Sanchez"), stub(2, "Alien Rick"), stub(3, "Aqua Rick")) }
+        repository.resultsForQuery = { Either.Right(listOf(stub(1, "Rick Sanchez"), stub(2, "Alien Rick"), stub(3, "Aqua Rick"))) }
         setScreen().search("rick")
 
         val itemInfo = compose.onNodeWithText("Alien Rick")
@@ -118,7 +121,7 @@ class SearchScreenSemanticsTest {
 
     @Test
     fun `cada fila es un unico boton con nombre especie y estado fusionados`() {
-        repository.resultsForQuery = { listOf(stub(1, "Rick Sanchez")) }
+        repository.resultsForQuery = { Either.Right(listOf(stub(1, "Rick Sanchez"))) }
         setScreen().search("rick")
 
         compose.onNode(hasText("Rick Sanchez") and hasText("Human · Alive"))
@@ -128,7 +131,7 @@ class SearchScreenSemanticsTest {
 
     @Test
     fun `sin resultados anuncia el mensaje de vacio como region viva`() {
-        repository.resultsForQuery = { emptyList() }
+        repository.resultsForQuery = { Either.Right(emptyList()) }
         setScreen().search("nadie")
 
         compose.onNodeWithText("Sin resultados para esa búsqueda")
@@ -137,10 +140,10 @@ class SearchScreenSemanticsTest {
 
     @Test
     fun `el error se anuncia como region viva y ofrece reintentar`() {
-        repository.resultsForQuery = { error("fallo de red simulado") }
+        repository.resultsForQuery = { Either.Left(DomainError.Unexpected) }
         setScreen().search("rick")
 
-        compose.onNodeWithText("Algo ha fallado. Revisa tu conexión e inténtalo de nuevo.")
+        compose.onNodeWithText("Algo ha fallado. Inténtalo de nuevo.")
             .assert(SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Polite))
         compose.onNodeWithText("Reintentar").assertHasClickAction()
     }

@@ -13,6 +13,8 @@ import androidx.compose.ui.test.performClick
 import com.characterfinder.app.ui.theme.CharacterFinderTheme
 import com.characterfinder.domain.model.Character
 import com.characterfinder.domain.repository.CharacterRepository
+import com.characterfinder.domain.result.DomainError
+import com.characterfinder.domain.result.Either
 import com.characterfinder.domain.usecase.GetCharacterDetailUseCase
 import kotlinx.coroutines.delay
 import org.junit.Rule
@@ -38,11 +40,12 @@ class DetailScreenSemanticsTest {
 
     private class FakeCharacterRepository : CharacterRepository {
         var responseDelayMillis = 0L
-        var characterForId: (Int) -> Character = { id -> stub(id, "Rick Sanchez") }
+        var characterForId: (Int) -> Either<DomainError, Character> = { id -> Either.Right(stub(id, "Rick Sanchez")) }
 
-        override suspend fun search(query: String): List<Character> = error("sin uso en estos tests")
+        override suspend fun search(query: String): Either<DomainError, List<Character>> =
+            error("sin uso en estos tests")
 
-        override suspend fun getCharacter(id: Int): Character {
+        override suspend fun getCharacter(id: Int): Either<DomainError, Character> {
             delay(responseDelayMillis)
             return characterForId(id)
         }
@@ -96,11 +99,11 @@ class DetailScreenSemanticsTest {
     fun `el error se anuncia como region viva y reintentar recupera el detalle`() {
         var failing = true
         repository.characterForId = { id ->
-            if (failing) error("fallo de red simulado") else stub(id, "Rick Sanchez")
+            if (failing) Either.Left(DomainError.Unexpected) else Either.Right(stub(id, "Rick Sanchez"))
         }
         setScreen()
 
-        compose.onNodeWithText("Algo ha fallado. Revisa tu conexión e inténtalo de nuevo.")
+        compose.onNodeWithText("Algo ha fallado. Inténtalo de nuevo.")
             .assert(SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Polite))
 
         failing = false

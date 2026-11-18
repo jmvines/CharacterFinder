@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.characterfinder.app.R
+import com.characterfinder.app.ui.messageRes
 import com.characterfinder.domain.model.Character
 import org.koin.androidx.compose.koinViewModel
 
@@ -145,7 +146,7 @@ private fun StatusMessage(
     val message = when (state) {
         SearchUiState.Idle -> stringResource(R.string.search_idle)
         SearchUiState.Empty -> stringResource(R.string.search_empty)
-        SearchUiState.Error -> stringResource(R.string.search_error)
+        is SearchUiState.Error -> stringResource(state.error.messageRes())
         SearchUiState.Loading, is SearchUiState.Success -> ""
     }
     Column(

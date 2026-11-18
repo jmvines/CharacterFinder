@@ -2,6 +2,8 @@ package com.characterfinder.app.ui.search
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.characterfinder.domain.result.DomainError
+import com.characterfinder.domain.result.fold
 import com.characterfinder.domain.usecase.SearchCharactersUseCase
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
@@ -48,12 +50,15 @@ class SearchViewModel(
             } else {
                 flow {
                     emit(SearchUiState.Loading)
-                    val characters = searchCharacters(query)
-                    emit(
-                        if (characters.isEmpty()) SearchUiState.Empty
-                        else SearchUiState.Success(characters),
+                    val state = searchCharacters(query).fold(
+                        ifLeft = { SearchUiState.Error(it) },
+                        ifRight = { characters ->
+                            if (characters.isEmpty()) SearchUiState.Empty
+                            else SearchUiState.Success(characters)
+                        },
                     )
-                }.catch { emit(SearchUiState.Error) }
+                    emit(state)
+                }.catch { emit(SearchUiState.Error(DomainError.Unexpected)) }
             }
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SearchUiState.Idle)

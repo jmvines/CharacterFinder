@@ -4,6 +4,8 @@ import app.cash.turbine.test
 import com.characterfinder.app.MainDispatcherRule
 import com.characterfinder.domain.model.Character
 import com.characterfinder.domain.repository.CharacterRepository
+import com.characterfinder.domain.result.DomainError
+import com.characterfinder.domain.result.Either
 import com.characterfinder.domain.usecase.SearchCharactersUseCase
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -23,11 +25,13 @@ class SearchViewModelTest {
 
     private class FakeCharacterRepository : CharacterRepository {
         var responseDelayMillis = 0L
-        var resultsForQuery: (String) -> List<Character> = { query -> listOf(characterStub(1, query)) }
+        var resultForQuery: (String) -> Either<DomainError, List<Character>> = { query ->
+            Either.Right(listOf(characterStub(1, query)))
+        }
         val searchedQueries = mutableListOf<String>()
         val cancelledQueries = mutableListOf<String>()
 
-        override suspend fun search(query: String): List<Character> {
+        override suspend fun search(query: String): Either<DomainError, List<Character>> {
             searchedQueries += query
             try {
                 delay(responseDelayMillis)
@@ -35,10 +39,11 @@ class SearchViewModelTest {
                 cancelledQueries += query
                 throw e
             }
-            return resultsForQuery(query)
+            return resultForQuery(query)
         }
 
-        override suspend fun getCharacter(id: Int): Character = characterStub(id, "sin uso")
+        override suspend fun getCharacter(id: Int): Either<DomainError, Character> =
+            Either.Right(characterStub(id, "sin uso"))
     }
 
     private val repository = FakeCharacterRepository()
@@ -105,7 +110,7 @@ class SearchViewModelTest {
 
     @Test
     fun `sin coincidencias emite Empty`() = runTest {
-        repository.resultsForQuery = { emptyList() }
+        repository.resultForQuery = { Either.Right(emptyList()) }
         val viewModel = viewModel()
 
         viewModel.uiState.test {
@@ -122,8 +127,8 @@ class SearchViewModelTest {
     @Test
     fun `reintentar tras un error relanza la misma busqueda sin esperar al debounce`() = runTest {
         var failing = true
-        repository.resultsForQuery = { query ->
-            if (failing) error("fallo de red simulado") else listOf(characterStub(1, query))
+        repository.resultForQuery = { query ->
+            if (failing) Either.Left(DomainError.Unexpected) else Either.Right(listOf(characterStub(1, query)))
         }
         val viewModel = viewModel()
 
@@ -133,7 +138,7 @@ class SearchViewModelTest {
             viewModel.onQueryChange("rick")
             advanceTimeBy(400)
             assertEquals(SearchUiState.Loading, awaitItem())
-            assertEquals(SearchUiState.Error, awaitItem())
+            assertEquals(SearchUiState.Error(DomainError.Unexpected), awaitItem())
 
             failing = false
             viewModel.retry()
@@ -146,8 +151,8 @@ class SearchViewModelTest {
     }
 
     @Test
-    fun `un fallo de red emite Error`() = runTest {
-        repository.resultsForQuery = { error("fallo de red simulado") }
+    fun `un fallo de red emite Error con su tipo`() = runTest {
+        repository.resultForQuery = { Either.Left(DomainError.Connectivity) }
         val viewModel = viewModel()
 
         viewModel.uiState.test {
@@ -157,7 +162,7 @@ class SearchViewModelTest {
             advanceTimeBy(400)
 
             assertEquals(SearchUiState.Loading, awaitItem())
-            assertEquals(SearchUiState.Error, awaitItem())
+            assertEquals(SearchUiState.Error(DomainError.Connectivity), awaitItem())
         }
     }
 }

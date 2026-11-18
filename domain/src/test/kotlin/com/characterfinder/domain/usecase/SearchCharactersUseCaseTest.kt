@@ -2,6 +2,8 @@ package com.characterfinder.domain.usecase
 
 import com.characterfinder.domain.model.Character
 import com.characterfinder.domain.repository.CharacterRepository
+import com.characterfinder.domain.result.DomainError
+import com.characterfinder.domain.result.Either
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -11,14 +13,15 @@ class SearchCharactersUseCaseTest {
 
     private class FakeRepository : CharacterRepository {
         val searchedQueries = mutableListOf<String>()
-        var result: List<Character> = emptyList()
+        var result: Either<DomainError, List<Character>> = Either.Right(emptyList())
 
-        override suspend fun search(query: String): List<Character> {
+        override suspend fun search(query: String): Either<DomainError, List<Character>> {
             searchedQueries += query
             return result
         }
 
-        override suspend fun getCharacter(id: Int): Character = error("sin uso en estos tests")
+        override suspend fun getCharacter(id: Int): Either<DomainError, Character> =
+            error("sin uso en estos tests")
     }
 
     private val repository = FakeRepository()
@@ -28,7 +31,7 @@ class SearchCharactersUseCaseTest {
     fun `con query en blanco devuelve vacio sin tocar el repositorio`() = runTest {
         val result = useCase("   ")
 
-        assertTrue(result.isEmpty())
+        assertEquals(Either.Right(emptyList<Character>()), result)
         assertTrue(repository.searchedQueries.isEmpty())
     }
 
@@ -42,9 +45,9 @@ class SearchCharactersUseCaseTest {
     @Test
     fun `devuelve lo que entrega el repositorio`() = runTest {
         val characters = listOf(characterStub(1, "Rick Sanchez"), characterStub(2, "Rick Prime"))
-        repository.result = characters
+        repository.result = Either.Right(characters)
 
-        assertEquals(characters, useCase("rick"))
+        assertEquals(Either.Right(characters), useCase("rick"))
     }
 }
 

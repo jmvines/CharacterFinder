@@ -2,8 +2,8 @@ package com.characterfinder.app.ui.detail
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.characterfinder.domain.result.fold
 import com.characterfinder.domain.usecase.GetCharacterDetailUseCase
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -28,13 +28,10 @@ class DetailViewModel(
     private fun load() {
         viewModelScope.launch {
             _uiState.value = DetailUiState.Loading
-            _uiState.value = try {
-                DetailUiState.Success(getCharacterDetail(characterId))
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                DetailUiState.Error
-            }
+            _uiState.value = getCharacterDetail(characterId).fold(
+                ifLeft = { DetailUiState.Error(it) },
+                ifRight = { DetailUiState.Success(it) },
+            )
         }
     }
 }

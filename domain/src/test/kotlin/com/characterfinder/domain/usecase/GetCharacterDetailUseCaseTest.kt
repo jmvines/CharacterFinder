@@ -2,6 +2,8 @@ package com.characterfinder.domain.usecase
 
 import com.characterfinder.domain.model.Character
 import com.characterfinder.domain.repository.CharacterRepository
+import com.characterfinder.domain.result.DomainError
+import com.characterfinder.domain.result.Either
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -10,11 +12,12 @@ class GetCharacterDetailUseCaseTest {
 
     private class FakeRepository : CharacterRepository {
         val requestedIds = mutableListOf<Int>()
-        var character: Character = characterStub(1, "Rick Sanchez")
+        var character: Either<DomainError, Character> = Either.Right(characterStub(1, "Rick Sanchez"))
 
-        override suspend fun search(query: String): List<Character> = error("sin uso en estos tests")
+        override suspend fun search(query: String): Either<DomainError, List<Character>> =
+            error("sin uso en estos tests")
 
-        override suspend fun getCharacter(id: Int): Character {
+        override suspend fun getCharacter(id: Int): Either<DomainError, Character> {
             requestedIds += id
             return character
         }

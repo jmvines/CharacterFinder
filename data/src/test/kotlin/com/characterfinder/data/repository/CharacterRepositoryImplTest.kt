@@ -5,27 +5,27 @@ import com.characterfinder.data.characterDtoStub
 import com.characterfinder.data.remote.CharacterDto
 import com.characterfinder.data.remote.CharacterPageDto
 import com.characterfinder.data.remote.RickAndMortyApi
+import com.characterfinder.domain.model.Character
+import com.characterfinder.domain.result.DomainError
+import com.characterfinder.domain.result.Either
 import kotlinx.coroutines.test.runTest
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Test
 import retrofit2.HttpException
 import retrofit2.Response
+import java.io.IOException
 
 class CharacterRepositoryImplTest {
 
     private class FakeApi : RickAndMortyApi {
         val searchedNames = mutableListOf<String>()
-        var failWith404 = false
+        var searchException: Exception? = null
 
         override suspend fun searchCharacters(name: String): CharacterPageDto {
             searchedNames += name
-            if (failWith404) {
-                val body = "{}".toResponseBody("application/json".toMediaType())
-                throw HttpException(Response.error<CharacterPageDto>(404, body))
-            }
+            searchException?.let { throw it }
             return CharacterPageDto(results = listOf(characterDtoStub(1, name)))
         }
 
@@ -71,11 +71,34 @@ class CharacterRepositoryImplTest {
 
     @Test
     fun `el 404 de la api se traduce a lista vacia y tambien se cachea`() = runTest {
-        api.failWith404 = true
+        api.searchException = httpException(404)
 
-        assertTrue(repository.search("nadie").isEmpty())
+        assertEquals(Either.Right(emptyList<Character>()), repository.search("nadie"))
 
-        assertTrue(repository.search("nadie").isEmpty())
+        assertEquals(Either.Right(emptyList<Character>()), repository.search("nadie"))
         assertEquals(1, api.searchedNames.size)
+    }
+
+    @Test
+    fun `un 5xx del servidor se traduce a DomainError Server y no se cachea`() = runTest {
+        api.searchException = httpException(500)
+
+        assertEquals(Either.Left(DomainError.Server), repository.search("rick"))
+
+        // Al no cachearse el error, un segundo intento vuelve a la red.
+        repository.search("rick")
+        assertEquals(2, api.searchedNames.size)
+    }
+
+    @Test
+    fun `un fallo de red se traduce a DomainError Connectivity`() = runTest {
+        api.searchException = IOException("sin red")
+
+        assertEquals(Either.Left(DomainError.Connectivity), repository.search("rick"))
+    }
+
+    private fun httpException(code: Int): HttpException {
+        val body = "{}".toResponseBody("application/json".toMediaType())
+        return HttpException(Response.error<CharacterPageDto>(code, body))
     }
 }

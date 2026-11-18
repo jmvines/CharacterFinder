@@ -4,6 +4,8 @@ import app.cash.turbine.test
 import com.characterfinder.app.MainDispatcherRule
 import com.characterfinder.domain.model.Character
 import com.characterfinder.domain.repository.CharacterRepository
+import com.characterfinder.domain.result.DomainError
+import com.characterfinder.domain.result.Either
 import com.characterfinder.domain.usecase.GetCharacterDetailUseCase
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
@@ -21,12 +23,12 @@ class DetailViewModelTest {
         var failing = false
         val requestedIds = mutableListOf<Int>()
 
-        override suspend fun search(query: String): List<Character> = emptyList()
+        override suspend fun search(query: String): Either<DomainError, List<Character>> =
+            Either.Right(emptyList())
 
-        override suspend fun getCharacter(id: Int): Character {
+        override suspend fun getCharacter(id: Int): Either<DomainError, Character> {
             requestedIds += id
-            if (failing) error("fallo de red simulado")
-            return characterStub(id)
+            return if (failing) Either.Left(DomainError.Unexpected) else Either.Right(characterStub(id))
         }
     }
 
@@ -55,7 +57,7 @@ class DetailViewModelTest {
 
         viewModel.uiState.test {
             assertEquals(DetailUiState.Loading, awaitItem())
-            assertEquals(DetailUiState.Error, awaitItem())
+            assertEquals(DetailUiState.Error(DomainError.Unexpected), awaitItem())
         }
     }
 
@@ -66,7 +68,7 @@ class DetailViewModelTest {
 
         viewModel.uiState.test {
             assertEquals(DetailUiState.Loading, awaitItem())
-            assertEquals(DetailUiState.Error, awaitItem())
+            assertEquals(DetailUiState.Error(DomainError.Unexpected), awaitItem())
 
             repository.failing = false
             viewModel.retry()
