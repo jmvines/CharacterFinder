@@ -3,6 +3,7 @@ package com.characterfinder.app.ui.search
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertHasClickAction
@@ -76,6 +77,14 @@ class SearchScreenSemanticsTest {
         setScreen()
 
         compose.onNodeWithText("Busca un personaje").assertExists()
+    }
+
+    @Test
+    fun `el teclado ofrece la accion Buscar en el campo`() {
+        setScreen()
+
+        compose.onNodeWithText("Busca un personaje")
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.ImeAction, ImeAction.Search))
     }
 
     @Test
