@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">CharacterFinder</string>
+    <string name="search_hint">Busca un personaje</string>
+    <string name="search_idle">Escribe un nombre para buscar personajes de Rick y Morty</string>
+    <string name="search_empty">Sin resultados para esa búsqueda</string>
+    <string name="search_error">Algo ha fallado. Revisa tu conexión e inténtalo de nuevo.</string>
+    <string name="retry">Reintentar</string>
+    <string name="back">Volver</string>
+    <string name="detail_title">Detalle</string>
+    <string name="detail_status">Estado</string>
+    <string name="detail_species">Especie</string>
+    <string name="detail_gender">Género</string>
+    <string name="detail_origin">Origen</string>
+    <string name="detail_last_location">Última ubicación</string>
+    <string name="detail_episodes">Episodios</string>
+</resources>

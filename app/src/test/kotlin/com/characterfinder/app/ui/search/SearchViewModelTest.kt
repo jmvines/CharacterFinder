@@ -1,0 +1,149 @@
+package com.characterfinder.app.ui.search
+
+import app.cash.turbine.test
+import com.characterfinder.app.MainDispatcherRule
+import com.characterfinder.domain.model.Character
+import com.characterfinder.domain.repository.CharacterRepository
+import com.characterfinder.domain.usecase.SearchCharactersUseCase
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.runTest
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
+import org.junit.Rule
+import org.junit.Test
+
+@OptIn(ExperimentalCoroutinesApi::class)
+class SearchViewModelTest {
+
+    @get:Rule
+    val mainDispatcherRule = MainDispatcherRule()
+
+    private class FakeCharacterRepository : CharacterRepository {
+        var responseDelayMillis = 0L
+        var resultsForQuery: (String) -> List<Character> = { query -> listOf(characterStub(1, query)) }
+        val searchedQueries = mutableListOf<String>()
+        val cancelledQueries = mutableListOf<String>()
+
+        override suspend fun search(query: String): List<Character> {
+            searchedQueries += query
+            try {
+                delay(responseDelayMillis)
+            } catch (e: CancellationException) {
+                cancelledQueries += query
+                throw e
+            }
+            return resultsForQuery(query)
+        }
+
+        override suspend fun getCharacter(id: Int): Character = characterStub(id, "sin uso")
+    }
+
+    private val repository = FakeCharacterRepository()
+
+    private fun viewModel() = SearchViewModel(SearchCharactersUseCase(repository))
+
+    @Test
+    fun `una busqueda nueva cancela la anterior y no publica sus resultados`() = runTest {
+        repository.responseDelayMillis = 1_000
+        val viewModel = viewModel()
+
+        viewModel.uiState.test {
+            assertEquals(SearchUiState.Idle, awaitItem())
+
+            viewModel.onQueryChange("rick")
+            advanceTimeBy(400) // pasa el debounce y arranca la búsqueda de "rick"
+            assertEquals(SearchUiState.Loading, awaitItem())
+
+            viewModel.onQueryChange("morty") // antes de que "rick" responda
+            advanceTimeBy(2_000)
+
+            val success = awaitItem() as SearchUiState.Success
+            assertEquals(listOf("morty"), success.characters.map { it.name })
+            assertEquals(listOf("rick"), repository.cancelledQueries)
+            expectNoEvents()
+        }
+    }
+
+    @Test
+    fun `el debounce agrupa el tecleo en una sola busqueda`() = runTest {
+        val viewModel = viewModel()
+
+        viewModel.uiState.test {
+            assertEquals(SearchUiState.Idle, awaitItem())
+
+            viewModel.onQueryChange("r")
+            advanceTimeBy(100)
+            viewModel.onQueryChange("ri")
+            advanceTimeBy(100)
+            viewModel.onQueryChange("rick")
+            advanceTimeBy(400)
+
+            assertEquals(SearchUiState.Loading, awaitItem())
+            val success = awaitItem() as SearchUiState.Success
+            assertEquals(listOf("rick"), success.characters.map { it.name })
+            assertEquals(listOf("rick"), repository.searchedQueries)
+        }
+    }
+
+    @Test
+    fun `con query en blanco queda en Idle sin tocar el repositorio`() = runTest {
+        val viewModel = viewModel()
+
+        viewModel.uiState.test {
+            assertEquals(SearchUiState.Idle, awaitItem())
+
+            viewModel.onQueryChange("   ")
+            advanceTimeBy(400)
+
+            expectNoEvents()
+            assertTrue(repository.searchedQueries.isEmpty())
+        }
+    }
+
+    @Test
+    fun `sin coincidencias emite Empty`() = runTest {
+        repository.resultsForQuery = { emptyList() }
+        val viewModel = viewModel()
+
+        viewModel.uiState.test {
+            assertEquals(SearchUiState.Idle, awaitItem())
+
+            viewModel.onQueryChange("nadie")
+            advanceTimeBy(400)
+
+            assertEquals(SearchUiState.Loading, awaitItem())
+            assertEquals(SearchUiState.Empty, awaitItem())
+        }
+    }
+
+    @Test
+    fun `un fallo de red emite Error`() = runTest {
+        repository.resultsForQuery = { error("fallo de red simulado") }
+        val viewModel = viewModel()
+
+        viewModel.uiState.test {
+            assertEquals(SearchUiState.Idle, awaitItem())
+
+            viewModel.onQueryChange("rick")
+            advanceTimeBy(400)
+
+            assertEquals(SearchUiState.Loading, awaitItem())
+            assertEquals(SearchUiState.Error, awaitItem())
+        }
+    }
+}
+
+private fun characterStub(id: Int, name: String) = Character(
+    id = id,
+    name = name,
+    status = "Alive",
+    species = "Human",
+    gender = "Male",
+    imageUrl = "https://example.com/$id.jpeg",
+    origin = "Earth (C-137)",
+    lastLocation = "Citadel of Ricks",
+    episodeCount = 51,
+)
