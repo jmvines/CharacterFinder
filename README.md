@@ -6,6 +6,11 @@ App Android de ejemplo para la prueba técnica: busca personajes de Rick & Morty
 detalle, con arquitectura en capas, cancelación de búsquedas en curso, caché con expiración y
 tests unitarios.
 
+<p>
+  <img src="docs/capturas/busqueda.png" width="270" alt="Pantalla de búsqueda con resultados para la query rick" />
+  <img src="docs/capturas/detalle.png" width="270" alt="Pantalla de detalle de Rick Sanchez" />
+</p>
+
 ## API elegida
 
 [Rick and Morty API](https://rickandmortyapi.com) — pública, sin API key ni registro, con
@@ -65,13 +70,20 @@ resultados de la segunda.
 - El reloj se inyecta como `() -> Long`, de modo que los tests de expiración mueven el tiempo
   sin esperas reales.
 
-## Tests (18)
+## Tests (21)
 
 | Módulo | Qué cubre |
 |---|---|
 | `:domain` (4) | Casos de uso con repositorio fake: query en blanco no toca el repo, trim, delegación |
 | `:data` (8) | Caché: hit dentro del TTL, expiración, entradas por query. Repositorio: segunda búsqueda sin red, expiración vuelve a red, normalización de clave, 404 → lista vacía |
-| `:app` (6) | ViewModel con `coroutines-test` + Turbine: **cancelación de la búsqueda anterior**, debounce, blank → Idle, sin resultados → Empty, fallo → Error, reintento tras error |
+| `:app` (9) | ViewModels con `coroutines-test` + Turbine. Búsqueda: **cancelación de la búsqueda anterior**, debounce, blank → Idle, sin resultados → Empty, fallo → Error, reintento tras error. Detalle: carga del id solicitado, fallo → Error, reintento tras error |
+
+## Accesibilidad
+
+Las dos pantallas están preparadas para TalkBack y probadas con él en dispositivo físico: la lista de
+resultados expone `collectionInfo`/`collectionItemInfo` (anuncia "elemento N de M"), los cambios
+de estado (cargando, error, sin resultados) se anuncian mediante live regions, y el detalle
+marca su título como heading para la navegación por encabezados.
 
 ## Integración continua
 
@@ -98,5 +110,8 @@ Corre en `ubuntu-latest` con JDK 17 (Temurin) y caché de Gradle entre runs, y d
   y no añaden dependencias.
 - **Sin Room/persistencia**: el enunciado da por buena la caché en memoria; añadir disco sería
   superficie extra sin requisito que lo pida.
+- **Solo la primera página de resultados**: la API pagina de 20 en 20 (`info.next`); para el
+  caso de uso — teclear un nombre y afinar la búsqueda — la primera página es suficiente, y
+  paginar añadiría scroll infinito y estados intermedios sin requisito que lo pida.
 - **Material 3 con esquema de color por defecto** y pantallas deliberadamente sobrias: el
   enunciado pide claridad, no diseño avanzado.
