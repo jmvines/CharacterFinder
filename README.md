@@ -70,12 +70,12 @@ resultados de la segunda.
 - El reloj se inyecta como `() -> Long`, de modo que los tests de expiración mueven el tiempo
   sin esperas reales.
 
-## Tests (34)
+## Tests (36)
 
 | Módulo | Qué cubre |
 |---|---|
 | `:domain` (4) | Casos de uso con repositorio fake: query en blanco no toca el repo, trim, delegación |
-| `:data` (8) | Caché: hit dentro del TTL, expiración, entradas por query. Repositorio: segunda búsqueda sin red, expiración vuelve a red, normalización de clave, 404 → lista vacía |
+| `:data` (10) | Caché: hit dentro del TTL, expiración, entradas por query. Repositorio: segunda búsqueda sin red, expiración vuelve a red, normalización de clave, 404 → lista vacía, 5xx → `Server`, fallo de red → `Connectivity` |
 | `:app` (9) | ViewModels con `coroutines-test` + Turbine. Búsqueda: **cancelación de la búsqueda anterior**, debounce, blank → Idle, sin resultados → Empty, fallo → Error, reintento tras error. Detalle: carga del id solicitado, fallo → Error, reintento tras error |
 | `:app` semantics (13) | Contrato de accesibilidad en JVM (Robolectric + compose-ui-test, sin emulador): etiquetas, live regions, encabezado, campos fusionados, rol de botón y posición en lista |
 
@@ -110,6 +110,9 @@ Corre en `ubuntu-latest` con JDK 17 (Temurin) y caché de Gradle entre runs, y d
   por constructor, lo que permite testearlos sin el framework.
 - **Fakes a mano en vez de librería de mocks**: para interfaces de un método son más legibles
   y no añaden dependencias.
+- **Errores tipados con `Either<DomainError, T>`** en vez de excepciones: `DomainError`
+  distingue `Connectivity` (sin red), `Server` (5xx) y `Unexpected`, y la UI muestra un mensaje
+  distinto por causa, con reintento en todos los casos.
 - **Sin Room/persistencia**: el enunciado da por buena la caché en memoria; añadir disco sería
   superficie extra sin requisito que lo pida.
 - **Solo la primera página de resultados**: la API pagina de 20 en 20 (`info.next`); para el
