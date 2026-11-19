@@ -102,6 +102,16 @@ class SearchScreenSemanticsTest {
     }
 
     @Test
+    fun `la fila de filtros es un grupo de seleccion unica y los chips tienen rol de radio`() {
+        setScreen()
+
+        compose.onNode(SemanticsMatcher.keyIsDefined(SemanticsProperties.SelectableGroup))
+            .assertExists()
+        compose.onNodeWithText("Vivos")
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.RadioButton))
+    }
+
+    @Test
     fun `elegir un filtro mueve la seleccion a su chip`() {
         setScreen()
 

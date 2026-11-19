@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -43,6 +44,7 @@ import androidx.compose.ui.semantics.collectionInfo
 import androidx.compose.ui.semantics.collectionItemInfo
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
@@ -153,7 +155,9 @@ fun SearchScreen(
 
 /**
  * Filtro de estado como chips de selección única; "Todos" = sin filtro (`null`).
- * [FilterChip] ya expone a TalkBack el estado de selección, sin semantics manuales.
+ * [FilterChip] ya expone el estado de selección; [selectableGroup] marca la fila como grupo
+ * (TalkBack anuncia la entrada/salida de la lista) y el rol radio sustituye al checkbox del
+ * componente porque marcar un chip desmarca el resto.
  */
 @Composable
 private fun StatusFilterRow(
@@ -165,7 +169,8 @@ private fun StatusFilterRow(
         modifier = modifier
             .fillMaxWidth()
             .horizontalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp),
+            .padding(horizontal = 16.dp)
+            .selectableGroup(),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         statusFilterOptions.forEach { (status, labelRes) ->
@@ -173,6 +178,7 @@ private fun StatusFilterRow(
                 selected = selected == status,
                 onClick = { onSelect(status) },
                 label = { Text(stringResource(labelRes)) },
+                modifier = Modifier.semantics { role = Role.RadioButton },
             )
         }
     }

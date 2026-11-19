@@ -76,14 +76,14 @@ pisan —, con **TTL de 3 minutos** y acceso protegido por `Mutex`.
 - El reloj se inyecta como `() -> Long`, de modo que los tests de expiración mueven el tiempo
   sin esperas reales.
 
-## Tests (44)
+## Tests (45)
 
 | Módulo | Qué cubre |
 |---|---|
 | `:domain` (5) | Casos de uso con repositorio fake: query en blanco no toca el repo, trim, delegación, propagación del filtro de estado |
 | `:data` (12) | Caché: hit dentro del TTL, expiración, entradas por query, **claves independientes por filtro de estado**. Repositorio: segunda búsqueda sin red, expiración vuelve a red, normalización de clave, filtro a la API en minúsculas, 404 → lista vacía, 5xx → `Server`, fallo de red → `Connectivity` |
 | `:app` (11) | ViewModels con `coroutines-test` + Turbine. Búsqueda: **cancelación de la búsqueda anterior**, debounce, blank → Idle, sin resultados → Empty, fallo → Error, reintento tras error, **cambiar el filtro cancela la búsqueda en curso**, el reintento conserva el filtro. Detalle: carga del id solicitado, fallo → Error, reintento tras error |
-| `:app` semantics (16) | Contrato de accesibilidad en JVM (Robolectric + compose-ui-test, sin emulador): etiquetas, live regions, encabezado, campos fusionados, rol de botón, posición en lista, estado de selección de los chips de filtro y acción Buscar del teclado |
+| `:app` semantics (17) | Contrato de accesibilidad en JVM (Robolectric + compose-ui-test, sin emulador): etiquetas, live regions, encabezado, campos fusionados, rol de botón, posición en lista, grupo de selección única con rol radio y estado de los chips de filtro, y acción Buscar del teclado |
 
 ## Accesibilidad
 
@@ -91,9 +91,10 @@ Accesibilidad con TalkBack verificada en dispositivo físico: etiquetas, anuncio
 de estado (cargando, error, sin resultados) mediante live regions, encabezado del detalle para
 la navegación por encabezados, flujo de error con reintento y anuncio de la posición en la lista
 de resultados ("elemento N de M") vía `collectionInfo`/`collectionItemInfo`. Los chips del
-filtro de estado exponen su estado de selección (son `FilterChip` de Material 3, que ya lo
-anuncia a TalkBack). Ese contrato de semántica queda además fijado por 15 tests JVM que corren
-en el CI (ver tabla de tests).
+filtro de estado forman un **grupo de selección única** (`selectableGroup` + rol radio):
+TalkBack anuncia la entrada y salida de la lista de filtros, que son excluyentes entre sí y
+el estado de selección de cada chip. Ese contrato de semántica queda además fijado por 16
+tests JVM que corren en el CI (ver tabla de tests).
 
 ## Integración continua
 
