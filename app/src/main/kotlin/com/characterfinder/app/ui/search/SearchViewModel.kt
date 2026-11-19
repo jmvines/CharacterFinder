@@ -33,22 +33,10 @@ class SearchViewModel(
     private val _statusFilter = MutableStateFlow<CharacterStatus?>(null)
     val statusFilter: StateFlow<CharacterStatus?> = _statusFilter.asStateFlow()
 
-    /**
-     * Reemitir el mismo valor en un [MutableStateFlow] no dispara el pipeline (conflación),
-     * así que el reintento necesita su propio trigger que reemita el query actual sin debounce.
-     */
     private val retryTrigger = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
 
-    /**
-     * Cancelación de búsquedas en curso: [flatMapLatest] cancela estructuradamente la corrutina
-     * de la búsqueda anterior en cuanto el query emite un valor nuevo, lo que aborta también la
-     * llamada HTTP de Retrofit. Nunca se publican resultados de una búsqueda obsoleta.
-     */
     @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
     val uiState: StateFlow<SearchUiState> = merge(
-        // El filtro entra en el mismo pipeline que el texto (combine): cambiarlo relanza la
-        // búsqueda sin debounce — es un gesto deliberado, no tecleo — y cancela la que hubiera
-        // en curso, igual que un query nuevo.
         combine(_query.debounce(DEBOUNCE_MILLIS), _statusFilter, ::SearchRequest),
         retryTrigger.map { SearchRequest(_query.value, _statusFilter.value) },
     )

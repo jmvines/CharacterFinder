@@ -65,10 +65,10 @@ class SearchViewModelTest {
             assertEquals(SearchUiState.Idle, awaitItem())
 
             viewModel.onQueryChange("rick")
-            advanceTimeBy(400) // pasa el debounce y arranca la búsqueda de "rick"
+            advanceTimeBy(400)
             assertEquals(SearchUiState.Loading, awaitItem())
 
-            viewModel.onQueryChange("morty") // antes de que "rick" responda
+            viewModel.onQueryChange("morty")
             advanceTimeBy(2_000)
 
             val success = awaitItem() as SearchUiState.Success
@@ -168,7 +168,7 @@ class SearchViewModelTest {
             advanceTimeBy(400)
             assertEquals(SearchUiState.Loading, awaitItem())
 
-            viewModel.onStatusFilterChange(CharacterStatus.ALIVE) // sin esperar al debounce
+            viewModel.onStatusFilterChange(CharacterStatus.ALIVE)
             advanceTimeBy(2_000)
 
             awaitItem() as SearchUiState.Success

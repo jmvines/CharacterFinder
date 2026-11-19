@@ -60,9 +60,6 @@ fun DetailScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    // Foco inicial para lectores de pantalla: sin esto TalkBack arranca en la flecha de
-    // volver (el primer elemento accionable); con el foco de entrada en el título, la
-    // pantalla se presenta por su nombre antes de ofrecer la navegación.
     val view = LocalView.current
     val titleFocus = remember { FocusRequester() }
     LaunchedEffect(Unit) {

@@ -4,10 +4,6 @@ import com.characterfinder.domain.model.Character
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
-/**
- * Caché en memoria de resultados de búsqueda por query, con expiración por TTL.
- * El reloj se inyecta para poder testear la expiración sin esperas reales.
- */
 class SearchCache(
     private val ttlMillis: Long,
     private val now: () -> Long = System::currentTimeMillis,

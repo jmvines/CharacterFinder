@@ -33,7 +33,6 @@ android {
 
     testOptions {
         unitTests {
-            // Robolectric necesita los recursos reales (strings.xml) para los tests de semantics.
             isIncludeAndroidResources = true
         }
     }
@@ -67,7 +66,6 @@ dependencies {
     implementation(libs.coil.compose)
 
     debugImplementation(libs.androidx.ui.tooling)
-    // Declara la ComponentActivity que usa createComposeRule; los unit tests corren contra el variant debug.
     debugImplementation(libs.androidx.ui.test.manifest)
 
     testImplementation(libs.junit)

@@ -77,8 +77,6 @@ fun SearchScreen(
     val statusFilter by viewModel.statusFilter.collectAsStateWithLifecycle()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    // announceForAccessibility: las liveRegion de Compose no anuncian de forma fiable
-    // estos cambios de estado (verificado con TalkBack en dispositivo).
     val view = LocalView.current
     LaunchedEffect(uiState) {
         val state = uiState
@@ -98,12 +96,6 @@ fun SearchScreen(
         ) {
             val keyboardController = LocalSoftwareKeyboardController.current
             val searchFieldFocus = remember { FocusRequester() }
-            // Foco inicial para lectores de pantalla: TalkBack evita colocar su foco inicial
-            // en campos de edición y se iría al siguiente elemento accionable (los filtros).
-            // Con el foco de entrada puesto aquí, TalkBack siempre arranca en la búsqueda.
-            // Condicionado a exploración táctil para no abrir el teclado a quien no la usa.
-            // Solo la primera vez: al volver del detalle la pantalla se recompone de cero y,
-            // sin el guard persistente, este efecto robaría el foco a la lista de resultados.
             var initialFocusRequested by rememberSaveable { mutableStateOf(false) }
             LaunchedEffect(Unit) {
                 if (initialFocusRequested) return@LaunchedEffect
@@ -122,8 +114,6 @@ fun SearchScreen(
                     .focusRequester(searchFieldFocus),
                 label = { Text(stringResource(R.string.search_hint)) },
                 singleLine = true,
-                // La búsqueda es reactiva al escribir; la acción Buscar solo oculta el teclado
-                // para dejar ver los resultados.
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                 keyboardActions = KeyboardActions(onSearch = { keyboardController?.hide() }),
             )
@@ -134,10 +124,6 @@ fun SearchScreen(
             Box(modifier = Modifier.fillMaxSize()) {
                 val state = uiState
                 if (state is SearchUiState.Success) {
-                    // Supercaja de los resultados: mismo patrón que la de los filtros
-                    // (nodo hoja con la etiqueta tras la lista, inset de 1dp contra la
-                    // poda por cobertura) — parada propia con el recuento antes de
-                    // entrar elemento a elemento.
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
@@ -206,18 +192,6 @@ fun SearchScreen(
     }
 }
 
-/**
- * Filtro de estado como chips de selección única; "Todos" = sin filtro (`null`).
- * [FilterChip] ya expone el estado de selección; [selectableGroup] marca la fila como grupo y
- * el rol radio sustituye al checkbox del componente porque marcar un chip desmarca el resto.
- * La supercaja de accesibilidad es un nodo HOJA con la etiqueta de la zona, superpuesto
- * detrás de los chips con su mismo tamaño: TalkBack salta en la navegación lineal los
- * contenedores (clicables o no) cuyos hijos ya son enfocables, pero una hoja con contenido
- * nunca se salta. Así el recorrido para primero en la zona entera (marco alrededor de los
- * cuatro chips, anuncia la etiqueta con el recuento) y después entra chip a chip; al ir
- * detrás, tocar un chip con el dedo sigue enfocando el chip. El traversalIndex garantiza
- * que la hoja va antes que los chips en el orden de lectura.
- */
 @Composable
 private fun StatusFilterRow(
     selected: CharacterStatus?,
@@ -238,9 +212,6 @@ private fun StatusFilterRow(
                     contentDescription = groupLabel
                 },
         )
-        // El padding de 1dp evita que la fila tape por completo a la supercaja de detrás:
-        // Compose poda del árbol de accesibilidad los nodos totalmente cubiertos por un
-        // hermano dibujado encima (verificado en dispositivo).
         Box(Modifier.padding(1.dp)) {
             Row(
                 modifier = Modifier
@@ -270,11 +241,6 @@ private val statusFilterOptions = listOf(
     CharacterStatus.UNKNOWN to R.string.filter_unknown,
 )
 
-/**
- * Mensaje de estado sobre un nodo de texto que existe en TODOS los estados: TalkBack solo
- * anuncia una liveRegion cuando cambia el texto de un nodo existente, no cuando el nodo
- * aparece de cero, así que el Text debe persistir entre recomposiciones (vacío si no aplica).
- */
 @Composable
 private fun StatusMessage(
     state: SearchUiState,
@@ -313,11 +279,6 @@ private fun CharacterRow(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // El lector no lee el texto visual de la fila sino esta descripción, que etiqueta cada
-    // campo (Nombre/Especie/Estado). clearAndSetSemantics y no semantics: con semantics el
-    // nodo fusionado conserva además el texto de los hijos y TalkBack leería la fila dos
-    // veces (etiquetada y del tirón). Rol, click y posición vienen de modificadores
-    // externos y sobreviven a la limpieza.
     val rowDescription = stringResource(
         R.string.character_row_description,
         character.name,

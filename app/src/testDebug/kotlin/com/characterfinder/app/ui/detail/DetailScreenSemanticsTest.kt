@@ -25,12 +25,6 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-/**
- * Verifica las semantics de accesibilidad de [DetailScreen] (lo que TalkBack recibe),
- * en JVM con Robolectric: corre con `./gradlew test`, sin emulador.
- */
-// application genérica: estos tests no usan Koin (los ViewModels se inyectan a mano)
-// y la Application real llamaría a startKoin en cada test, chocando con el GlobalContext.
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [35], application = android.app.Application::class)
@@ -70,7 +64,6 @@ class DetailScreenSemanticsTest {
 
         compose.onNodeWithText("Detalle")
             .assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading))
-        // El nombre del personaje ya no es encabezado: el de la pantalla es "Detalle".
         compose.onNodeWithText("Rick Sanchez")
             .assert(SemanticsMatcher.keyNotDefined(SemanticsProperties.Heading))
     }
@@ -87,8 +80,6 @@ class DetailScreenSemanticsTest {
     fun `el titulo Detalle es enfocable para recibir el foco inicial del lector`() {
         setScreen()
 
-        // Con exploración táctil activa, DetailScreen pide el foco de entrada al título
-        // para que TalkBack no arranque en la flecha de volver.
         compose.onNodeWithText("Detalle")
             .assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.Focused))
     }

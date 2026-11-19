@@ -59,7 +59,6 @@ class CharacterRepositoryImplTest {
 
         assertEquals(2, api.searchedNames.size)
 
-        // La entrada refrescada vuelve a ser válida sin red durante otro TTL.
         repository.search("rick")
         assertEquals(2, api.searchedNames.size)
     }
@@ -88,7 +87,6 @@ class CharacterRepositoryImplTest {
 
         assertEquals(3, api.searchedNames.size)
 
-        // Cada combinación query+filtro sí queda cacheada por separado.
         repository.search("rick", CharacterStatus.ALIVE)
         assertEquals(3, api.searchedNames.size)
     }
@@ -109,7 +107,6 @@ class CharacterRepositoryImplTest {
 
         assertEquals(Either.Left(DomainError.Server), repository.search("rick"))
 
-        // Al no cachearse el error, un segundo intento vuelve a la red.
         repository.search("rick")
         assertEquals(2, api.searchedNames.size)
     }

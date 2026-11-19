@@ -30,12 +30,6 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-/**
- * Verifica las semantics de accesibilidad de [SearchScreen] (lo que TalkBack recibe),
- * en JVM con Robolectric: corre con `./gradlew test`, sin emulador.
- */
-// application genérica: estos tests no usan Koin (los ViewModels se inyectan a mano)
-// y la Application real llamaría a startKoin en cada test, chocando con el GlobalContext.
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [35], application = android.app.Application::class)
@@ -69,7 +63,6 @@ class SearchScreenSemanticsTest {
         return viewModel
     }
 
-    /** retry() reemite el query sin esperar al debounce: lleva la pantalla al estado final ya. */
     private fun SearchViewModel.search(query: String) {
         onQueryChange(query)
         retry()
@@ -105,9 +98,6 @@ class SearchScreenSemanticsTest {
     fun `la fila de filtros es un grupo de seleccion unica etiquetado y los chips tienen rol de radio`() {
         setScreen()
 
-        // La supercaja es un nodo HOJA con la etiqueta (TalkBack no salta hojas con
-        // contenido, pero sí contenedores con hijos enfocables), ordenada antes que los
-        // chips vía traversalIndex.
         compose.onNodeWithContentDescription("Filtro de estado del personaje, 4 opciones")
             .assert(SemanticsMatcher.expectValue(SemanticsProperties.TraversalIndex, -1f))
         compose.onNode(SemanticsMatcher.keyIsDefined(SemanticsProperties.SelectableGroup))
@@ -149,8 +139,6 @@ class SearchScreenSemanticsTest {
         repository.resultsForQuery = { Either.Right(listOf(stub(1, "Rick Sanchez"), stub(2, "Alien Rick"), stub(3, "Aqua Rick"))) }
         setScreen().search("rick")
 
-        // Nodo hoja tras la lista, igual que la supercaja de los filtros: parada propia
-        // del recorrido con el recuento antes de entrar elemento a elemento.
         compose.onNodeWithContentDescription("Lista de resultados, 3 personajes")
             .assert(SemanticsMatcher.expectValue(SemanticsProperties.TraversalIndex, -1f))
     }
@@ -195,8 +183,6 @@ class SearchScreenSemanticsTest {
         repository.resultsForQuery = { Either.Right(listOf(stub(1, "Rick Sanchez"))) }
         setScreen().search("rick")
 
-        // clearAndSetSemantics: si el texto siguiera en el nodo fusionado, TalkBack leería
-        // la fila dos veces (la descripción etiquetada y luego el texto del tirón).
         compose.onNode(hasText("Human · Alive")).assertDoesNotExist()
     }
 

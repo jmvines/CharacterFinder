@@ -23,8 +23,6 @@ class CharacterRepositoryImpl(
     ): Either<DomainError, List<Character>> {
         val name = query.trim().lowercase()
         val statusParam = status?.name?.lowercase()
-        // La clave de caché incluye el filtro: la misma query con filtros distintos
-        // son resultados distintos y no deben pisarse.
         val key = "$name|${statusParam.orEmpty()}"
         cache.get(key)?.let { return Either.Right(it) }
 
@@ -32,7 +30,6 @@ class CharacterRepositoryImpl(
             val characters = try {
                 api.searchCharacters(name, statusParam).results.map { it.toDomain() }
             } catch (e: HttpException) {
-                // La API de Rick & Morty responde 404 cuando la búsqueda no tiene coincidencias.
                 if (e.code() == 404) emptyList() else throw e
             }
             cache.put(key, characters)
@@ -53,7 +50,6 @@ class CharacterRepositoryImpl(
     }
 }
 
-/** Traduce la excepción técnica al error de dominio según la reacción que merece en la UI. */
 private fun Throwable.toDomainError(): DomainError = when (this) {
     is IOException -> DomainError.Connectivity
     is HttpException -> if (code() in 500..599) DomainError.Server else DomainError.Unexpected
