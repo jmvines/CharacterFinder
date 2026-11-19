@@ -81,6 +81,16 @@ class DetailScreenSemanticsTest {
     }
 
     @Test
+    fun `el titulo Detalle es enfocable para recibir el foco inicial del lector`() {
+        setScreen()
+
+        // Con exploración táctil activa, DetailScreen pide el foco de entrada al título
+        // para que TalkBack no arranque en la flecha de volver.
+        compose.onNodeWithText("Detalle")
+            .assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.Focused))
+    }
+
+    @Test
     fun `el boton de volver esta etiquetado`() {
         setScreen()
 

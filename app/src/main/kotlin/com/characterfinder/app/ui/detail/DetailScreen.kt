@@ -1,5 +1,7 @@
 package com.characterfinder.app.ui.detail
 
+import android.view.accessibility.AccessibilityManager
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -24,10 +26,15 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
@@ -53,10 +60,29 @@ fun DetailScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
+    // Foco inicial para lectores de pantalla: sin esto TalkBack arranca en la flecha de
+    // volver (el primer elemento accionable); con el foco de entrada en el título, la
+    // pantalla se presenta por su nombre antes de ofrecer la navegación.
+    val view = LocalView.current
+    val titleFocus = remember { FocusRequester() }
+    LaunchedEffect(Unit) {
+        val accessibility = view.context.getSystemService(AccessibilityManager::class.java)
+        if (accessibility?.isTouchExplorationEnabled == true) {
+            titleFocus.requestFocus()
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.detail_title)) },
+                title = {
+                    Text(
+                        text = stringResource(R.string.detail_title),
+                        modifier = Modifier
+                            .focusRequester(titleFocus)
+                            .focusable(),
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
