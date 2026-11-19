@@ -173,30 +173,31 @@ class SearchScreenSemanticsTest {
         repository.resultsForQuery = { Either.Right(listOf(stub(1, "Rick Sanchez"), stub(2, "Alien Rick"), stub(3, "Aqua Rick"))) }
         setScreen().search("rick")
 
-        val itemInfo = compose.onNodeWithText("Alien Rick")
+        val itemInfo = compose
+            .onNodeWithContentDescription("Nombre: Alien Rick. Especie: Human. Estado: Alive.")
             .fetchSemanticsNode()
             .config[SemanticsProperties.CollectionItemInfo]
         assertEquals(1, itemInfo.rowIndex)
     }
 
     @Test
-    fun `cada fila es un unico boton con nombre especie y estado fusionados`() {
+    fun `cada fila es un unico boton que anuncia sus campos etiquetados`() {
         repository.resultsForQuery = { Either.Right(listOf(stub(1, "Rick Sanchez"))) }
         setScreen().search("rick")
 
-        compose.onNode(hasText("Rick Sanchez") and hasText("Human · Alive"))
+        compose.onNodeWithContentDescription("Nombre: Rick Sanchez. Especie: Human. Estado: Alive.")
             .assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button))
             .assertHasClickAction()
     }
 
     @Test
-    fun `cada fila anuncia sus campos etiquetados como Nombre Especie y Estado`() {
+    fun `el texto visual de la fila queda fuera de semantics para no leerse dos veces`() {
         repository.resultsForQuery = { Either.Right(listOf(stub(1, "Rick Sanchez"))) }
         setScreen().search("rick")
 
-        // El lector lee esta descripción en lugar del texto visual: cada campo con su etiqueta.
-        compose.onNodeWithContentDescription("Nombre: Rick Sanchez. Especie: Human. Estado: Alive.")
-            .assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button))
+        // clearAndSetSemantics: si el texto siguiera en el nodo fusionado, TalkBack leería
+        // la fila dos veces (la descripción etiquetada y luego el texto del tirón).
+        compose.onNode(hasText("Human · Alive")).assertDoesNotExist()
     }
 
     @Test

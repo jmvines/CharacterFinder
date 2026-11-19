@@ -45,6 +45,7 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.CollectionInfo
 import androidx.compose.ui.semantics.CollectionItemInfo
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.collectionInfo
@@ -305,7 +306,10 @@ private fun CharacterRow(
     modifier: Modifier = Modifier,
 ) {
     // El lector no lee el texto visual de la fila sino esta descripción, que etiqueta cada
-    // campo (Nombre/Especie/Estado): "Human · Alive" a secas no dice qué es cada cosa.
+    // campo (Nombre/Especie/Estado). clearAndSetSemantics y no semantics: con semantics el
+    // nodo fusionado conserva además el texto de los hijos y TalkBack leería la fila dos
+    // veces (etiquetada y del tirón). Rol, click y posición vienen de modificadores
+    // externos y sobreviven a la limpieza.
     val rowDescription = stringResource(
         R.string.character_row_description,
         character.name,
@@ -316,7 +320,7 @@ private fun CharacterRow(
         modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = onClick, role = Role.Button)
-            .semantics { contentDescription = rowDescription }
+            .clearAndSetSemantics { contentDescription = rowDescription }
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
