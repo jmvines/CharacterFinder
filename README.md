@@ -90,11 +90,12 @@ pisan —, con **TTL de 3 minutos** y acceso protegido por `Mutex`.
 Accesibilidad con TalkBack verificada en dispositivo físico: etiquetas, anuncios de los cambios
 de estado (cargando, error, sin resultados) mediante live regions, encabezado del detalle para
 la navegación por encabezados, flujo de error con reintento y anuncio de la posición en la lista
-de resultados ("elemento N de M") vía `collectionInfo`/`collectionItemInfo`. Los chips del
-filtro de estado forman un **grupo de selección única** (`selectableGroup` + rol radio):
-TalkBack anuncia la entrada y salida de la lista de filtros, que son excluyentes entre sí y
-el estado de selección de cada chip. Ese contrato de semántica queda además fijado por 16
-tests JVM que corren en el CI (ver tabla de tests).
+de resultados ("elemento N de M") vía `collectionInfo`/`collectionItemInfo`. La fila de
+filtros es un nodo de accesibilidad propio etiquetado ("Filtrar por estado") y un **grupo de
+selección única** (`selectableGroup` + rol radio): TalkBack enfoca primero la zona entera y
+después cada chip, dejando claro que los filtros son excluyentes y cuál está seleccionado.
+Ese contrato de semántica queda además fijado por 16 tests JVM que corren en el CI (ver
+tabla de tests).
 
 ## Integración continua
 

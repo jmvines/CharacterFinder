@@ -155,9 +155,11 @@ fun SearchScreen(
 
 /**
  * Filtro de estado como chips de selección única; "Todos" = sin filtro (`null`).
- * [FilterChip] ya expone el estado de selección; [selectableGroup] marca la fila como grupo
- * (TalkBack anuncia la entrada/salida de la lista) y el rol radio sustituye al checkbox del
- * componente porque marcar un chip desmarca el resto.
+ * [FilterChip] ya expone el estado de selección; [selectableGroup] marca la fila como grupo y
+ * el rol radio sustituye al checkbox del componente porque marcar un chip desmarca el resto.
+ * El contentDescription de la fila la convierte en un nodo propio de accesibilidad: TalkBack
+ * la enfoca entera (marco alrededor de los cuatro chips) y anuncia la zona antes de entrar
+ * a los chips individuales.
  */
 @Composable
 private fun StatusFilterRow(
@@ -165,11 +167,13 @@ private fun StatusFilterRow(
     onSelect: (CharacterStatus?) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val groupLabel = stringResource(R.string.filter_group_label)
     Row(
         modifier = modifier
             .fillMaxWidth()
             .horizontalScroll(rememberScrollState())
             .padding(horizontal = 16.dp)
+            .semantics { contentDescription = groupLabel }
             .selectableGroup(),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {

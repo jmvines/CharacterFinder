@@ -102,11 +102,13 @@ class SearchScreenSemanticsTest {
     }
 
     @Test
-    fun `la fila de filtros es un grupo de seleccion unica y los chips tienen rol de radio`() {
+    fun `la fila de filtros es un grupo de seleccion unica etiquetado y los chips tienen rol de radio`() {
         setScreen()
 
-        compose.onNode(SemanticsMatcher.keyIsDefined(SemanticsProperties.SelectableGroup))
-            .assertExists()
+        // La etiqueta del grupo y el selectableGroup viven en el MISMO nodo: TalkBack enfoca
+        // la fila entera como "Filtrar por estado, lista" antes de entrar a los chips.
+        compose.onNodeWithContentDescription("Filtrar por estado")
+            .assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.SelectableGroup))
         compose.onNodeWithText("Vivos")
             .assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.RadioButton))
     }

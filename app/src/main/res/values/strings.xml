@@ -4,6 +4,7 @@
     <string name="search_hint">Busca un personaje</string>
     <string name="search_idle">Escribe un nombre para buscar personajes de Rick y Morty</string>
     <string name="search_empty">Sin resultados para esa búsqueda</string>
+    <string name="filter_group_label">Filtrar por estado</string>
     <string name="filter_all">Todos</string>
     <string name="filter_alive">Vivos</string>
     <string name="filter_dead">Muertos</string>
