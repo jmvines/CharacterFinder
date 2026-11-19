@@ -5,7 +5,7 @@ plugins {
 
 android {
     namespace = "com.characterfinder.app"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.characterfinder.app"
