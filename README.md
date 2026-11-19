@@ -7,7 +7,7 @@ estado (vivos, muertos, desconocido) y muestra su detalle, con arquitectura en c
 cancelación de búsquedas en curso, caché con expiración y tests unitarios.
 
 <p>
-  <img src="docs/capturas/busqueda.png" width="270" alt="Pantalla de búsqueda con resultados para la query rick" />
+  <img src="docs/capturas/busqueda.png" width="270" alt="Pantalla de búsqueda con la query rick, el filtro Vivos activo y sus resultados" />
   <img src="docs/capturas/detalle.png" width="270" alt="Pantalla de detalle de Rick Sanchez" />
 </p>
 
