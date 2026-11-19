@@ -92,12 +92,14 @@ de estado (cargando, error, sin resultados) mediante live regions, encabezado de
 la navegación por encabezados, flujo de error con reintento y anuncio de la posición en la lista
 de resultados ("elemento N de M") vía `collectionInfo`/`collectionItemInfo`. La zona de
 filtros es una parada propia del recorrido que **engloba los cuatro chips** y se anuncia
-como "Filtros de estado, 4 opciones"; después el foco entra chip a chip, con **rol radio y
+como "Filtro de estado del personaje, 4 opciones"; después el foco entra chip a chip, con **rol radio y
 grupo de selección única** (`selectableGroup`), dejando claro que son excluyentes y cuál
-está activo. La etiqueta y el `focusable` van en un nodo separado del scroll — TalkBack
-salta los contenedores desplazables — y al abrir la pantalla con un lector activo el foco
-inicial se coloca en el campo de búsqueda, no en los filtros. Ese contrato de semántica
-queda además fijado por 16 tests JVM que corren en el CI (ver tabla de tests).
+está activo. Esa parada es un **nodo hoja** con la etiqueta dibujado tras los chips —
+TalkBack salta en la navegación lineal los contenedores cuyos hijos ya son enfocables,
+pero nunca una hoja con contenido, y al ir detrás no interfiere con la exploración táctil
+de los chips. Al abrir la pantalla con un lector activo, el foco inicial se coloca en el
+campo de búsqueda, no en los filtros. Ese contrato de semántica queda además fijado por
+16 tests JVM que corren en el CI (ver tabla de tests).
 
 ## Integración continua
 

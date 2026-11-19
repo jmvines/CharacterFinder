@@ -1,11 +1,12 @@
 package com.characterfinder.app.ui.search
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.focusable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.ui.semantics.isTraversalGroup
+import androidx.compose.ui.semantics.traversalIndex
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -174,11 +175,13 @@ fun SearchScreen(
  * Filtro de estado como chips de selección única; "Todos" = sin filtro (`null`).
  * [FilterChip] ya expone el estado de selección; [selectableGroup] marca la fila como grupo y
  * el rol radio sustituye al checkbox del componente porque marcar un chip desmarca el resto.
- * La supercaja de accesibilidad es el Box exterior: etiquetado y focusable, es una parada
- * propia del recorrido de TalkBack que engloba los cuatro chips (marco alrededor de todos,
- * anuncia la zona) antes de entrar a cada chip. Va en un nodo SEPARADO de la fila con scroll:
- * TalkBack trata los contenedores desplazables como listas y salta directamente a sus
- * elementos, así que etiqueta y scroll no pueden compartir nodo.
+ * La supercaja de accesibilidad es un nodo HOJA con la etiqueta de la zona, superpuesto
+ * detrás de los chips con su mismo tamaño: TalkBack salta en la navegación lineal los
+ * contenedores (clicables o no) cuyos hijos ya son enfocables, pero una hoja con contenido
+ * nunca se salta. Así el recorrido para primero en la zona entera (marco alrededor de los
+ * cuatro chips, anuncia la etiqueta con el recuento) y después entra chip a chip; al ir
+ * detrás, tocar un chip con el dedo sigue enfocando el chip. El traversalIndex garantiza
+ * que la hoja va antes que los chips en el orden de lectura.
  */
 @Composable
 private fun StatusFilterRow(
@@ -190,24 +193,36 @@ private fun StatusFilterRow(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .semantics { contentDescription = groupLabel }
-            .focusable(),
+            .semantics { isTraversalGroup = true },
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp)
-                .selectableGroup(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            statusFilterOptions.forEach { (status, labelRes) ->
-                FilterChip(
-                    selected = selected == status,
-                    onClick = { onSelect(status) },
-                    label = { Text(stringResource(labelRes)) },
-                    modifier = Modifier.semantics { role = Role.RadioButton },
-                )
+        Box(
+            Modifier
+                .matchParentSize()
+                .semantics(mergeDescendants = true) {
+                    traversalIndex = -1f
+                    contentDescription = groupLabel
+                },
+        )
+        // El padding de 1dp evita que la fila tape por completo a la supercaja de detrás:
+        // Compose poda del árbol de accesibilidad los nodos totalmente cubiertos por un
+        // hermano dibujado encima (verificado en dispositivo).
+        Box(Modifier.padding(1.dp)) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState())
+                    .padding(horizontal = 15.dp)
+                    .selectableGroup(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                statusFilterOptions.forEach { (status, labelRes) ->
+                    FilterChip(
+                        selected = selected == status,
+                        onClick = { onSelect(status) },
+                        label = { Text(stringResource(labelRes)) },
+                        modifier = Modifier.semantics { role = Role.RadioButton },
+                    )
+                }
             }
         }
     }

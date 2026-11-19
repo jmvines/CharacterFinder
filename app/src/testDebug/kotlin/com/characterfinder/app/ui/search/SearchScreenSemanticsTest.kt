@@ -105,11 +105,11 @@ class SearchScreenSemanticsTest {
     fun `la fila de filtros es un grupo de seleccion unica etiquetado y los chips tienen rol de radio`() {
         setScreen()
 
-        // La supercaja (etiqueta + focusable) va en un nodo SEPARADO de la fila con scroll:
-        // TalkBack salta los contenedores desplazables, así que si compartieran nodo la
-        // etiqueta no sonaría. El focusable es lo que la convierte en parada del recorrido.
-        compose.onNodeWithContentDescription("Filtros de estado, 4 opciones")
-            .assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.Focused))
+        // La supercaja es un nodo HOJA con la etiqueta (TalkBack no salta hojas con
+        // contenido, pero sí contenedores con hijos enfocables), ordenada antes que los
+        // chips vía traversalIndex.
+        compose.onNodeWithContentDescription("Filtro de estado del personaje, 4 opciones")
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.TraversalIndex, -1f))
         compose.onNode(SemanticsMatcher.keyIsDefined(SemanticsProperties.SelectableGroup))
             .assertExists()
         compose.onNodeWithText("Vivos")
