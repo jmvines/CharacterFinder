@@ -32,7 +32,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import android.view.accessibility.AccessibilityManager
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -99,7 +102,12 @@ fun SearchScreen(
             // en campos de edición y se iría al siguiente elemento accionable (los filtros).
             // Con el foco de entrada puesto aquí, TalkBack siempre arranca en la búsqueda.
             // Condicionado a exploración táctil para no abrir el teclado a quien no la usa.
+            // Solo la primera vez: al volver del detalle la pantalla se recompone de cero y,
+            // sin el guard persistente, este efecto robaría el foco a la lista de resultados.
+            var initialFocusRequested by rememberSaveable { mutableStateOf(false) }
             LaunchedEffect(Unit) {
+                if (initialFocusRequested) return@LaunchedEffect
+                initialFocusRequested = true
                 val accessibility = view.context.getSystemService(AccessibilityManager::class.java)
                 if (accessibility?.isTouchExplorationEnabled == true) {
                     searchFieldFocus.requestFocus()
