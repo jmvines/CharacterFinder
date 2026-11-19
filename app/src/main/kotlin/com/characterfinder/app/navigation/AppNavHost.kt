@@ -1,34 +1,43 @@
 package com.characterfinder.app.navigation
 
 import androidx.compose.runtime.Composable
-import androidx.navigation.NavHostController
-import androidx.navigation.NavType
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
-import androidx.navigation.navArgument
+import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
+import androidx.navigation3.runtime.NavKey
+import androidx.navigation3.runtime.entryProvider
+import androidx.navigation3.runtime.rememberNavBackStack
+import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
+import androidx.navigation3.ui.NavDisplay
 import com.characterfinder.app.ui.detail.DetailScreen
 import com.characterfinder.app.ui.search.SearchScreen
+import kotlinx.serialization.Serializable
 
-private const val ROUTE_SEARCH = "search"
-private const val ARG_CHARACTER_ID = "characterId"
-private const val ROUTE_DETAIL = "detail/{$ARG_CHARACTER_ID}"
+@Serializable
+private data object SearchKey : NavKey
+
+@Serializable
+private data class DetailKey(val characterId: Int) : NavKey
 
 @Composable
-fun AppNavHost(navController: NavHostController = rememberNavController()) {
-    NavHost(navController = navController, startDestination = ROUTE_SEARCH) {
-        composable(ROUTE_SEARCH) {
-            SearchScreen(onCharacterClick = { id -> navController.navigate("detail/$id") })
-        }
-        composable(
-            route = ROUTE_DETAIL,
-            arguments = listOf(navArgument(ARG_CHARACTER_ID) { type = NavType.IntType }),
-        ) { backStackEntry ->
-            val characterId = requireNotNull(backStackEntry.arguments).getInt(ARG_CHARACTER_ID)
-            DetailScreen(
-                characterId = characterId,
-                onBack = { navController.popBackStack() },
-            )
-        }
-    }
+fun AppNavHost() {
+    val backStack = rememberNavBackStack(SearchKey)
+
+    NavDisplay(
+        backStack = backStack,
+        onBack = { backStack.removeLastOrNull() },
+        entryDecorators = listOf(
+            rememberSaveableStateHolderNavEntryDecorator(),
+            rememberViewModelStoreNavEntryDecorator(),
+        ),
+        entryProvider = entryProvider {
+            entry<SearchKey> {
+                SearchScreen(onCharacterClick = { id -> backStack.add(DetailKey(id)) })
+            }
+            entry<DetailKey> { key ->
+                DetailScreen(
+                    characterId = key.characterId,
+                    onBack = { backStack.removeLastOrNull() },
+                )
+            }
+        },
+    )
 }
