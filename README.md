@@ -2,9 +2,9 @@
 
 [![Build y tests](https://github.com/jmvines/CharacterFinder/actions/workflows/ci.yml/badge.svg)](https://github.com/jmvines/CharacterFinder/actions/workflows/ci.yml)
 
-App Android de ejemplo para la prueba técnica: busca personajes de Rick & Morty y muestra su
-detalle, con arquitectura en capas, cancelación de búsquedas en curso, caché con expiración y
-tests unitarios.
+App Android de ejemplo para la prueba técnica: busca personajes de Rick & Morty, filtra por
+estado (vivos, muertos, desconocido) y muestra su detalle, con arquitectura en capas,
+cancelación de búsquedas en curso, caché con expiración y tests unitarios.
 
 <p>
   <img src="docs/capturas/busqueda.png" width="270" alt="Pantalla de búsqueda con resultados para la query rick" />
@@ -14,7 +14,8 @@ tests unitarios.
 ## API elegida
 
 [Rick and Morty API](https://rickandmortyapi.com) — pública, sin API key ni registro, con
-búsqueda por nombre (`GET /api/character?name=`) y detalle por id (`GET /api/character/{id}`).
+búsqueda por nombre con filtro de estado opcional (`GET /api/character?name=&status=`) y
+detalle por id (`GET /api/character/{id}`).
 Peculiaridad a tener en cuenta: responde **404 cuando la búsqueda no tiene coincidencias**; el
 repositorio lo traduce a lista vacía (estado "sin resultados", no error).
 
@@ -56,36 +57,43 @@ El texto de búsqueda vive en un `StateFlow` en `SearchViewModel`. El pipeline
   (`flatMapLatest`), lo que aborta también su llamada HTTP (Retrofit con funciones `suspend`
   coopera con la cancelación). Nunca se publican resultados de una búsqueda obsoleta.
 
+El filtro de estado (chips Todos/Vivos/Muertos/Desconocido) entra en el mismo pipeline vía
+`combine`: cambiarlo relanza la búsqueda **sin debounce** — es un gesto deliberado, no tecleo —
+y cancela igualmente la que hubiera en curso.
+
 Está cubierto por un test (`SearchViewModelTest`): se lanza una búsqueda lenta, se emite otra
 antes de que termine y se comprueba que la primera queda cancelada y que la UI solo recibe los
 resultados de la segunda.
 
 ## Caché
 
-`SearchCache` (`:data`): caché **en memoria por query normalizada** (trim + minúsculas), con
-**TTL de 3 minutos** y acceso protegido por `Mutex`.
+`SearchCache` (`:data`): caché **en memoria por query normalizada** (trim + minúsculas) **y
+filtro de estado** — la misma query con filtros distintos son resultados distintos y no se
+pisan —, con **TTL de 3 minutos** y acceso protegido por `Mutex`.
 
 - Si hay entrada válida, el repositorio la devuelve **sin llamada de red**.
 - Si expiró, se elimina, se consulta la red y se refresca la entrada.
 - El reloj se inyecta como `() -> Long`, de modo que los tests de expiración mueven el tiempo
   sin esperas reales.
 
-## Tests (37)
+## Tests (44)
 
 | Módulo | Qué cubre |
 |---|---|
-| `:domain` (4) | Casos de uso con repositorio fake: query en blanco no toca el repo, trim, delegación |
-| `:data` (10) | Caché: hit dentro del TTL, expiración, entradas por query. Repositorio: segunda búsqueda sin red, expiración vuelve a red, normalización de clave, 404 → lista vacía, 5xx → `Server`, fallo de red → `Connectivity` |
-| `:app` (9) | ViewModels con `coroutines-test` + Turbine. Búsqueda: **cancelación de la búsqueda anterior**, debounce, blank → Idle, sin resultados → Empty, fallo → Error, reintento tras error. Detalle: carga del id solicitado, fallo → Error, reintento tras error |
-| `:app` semantics (14) | Contrato de accesibilidad en JVM (Robolectric + compose-ui-test, sin emulador): etiquetas, live regions, encabezado, campos fusionados, rol de botón, posición en lista y acción Buscar del teclado |
+| `:domain` (5) | Casos de uso con repositorio fake: query en blanco no toca el repo, trim, delegación, propagación del filtro de estado |
+| `:data` (12) | Caché: hit dentro del TTL, expiración, entradas por query, **claves independientes por filtro de estado**. Repositorio: segunda búsqueda sin red, expiración vuelve a red, normalización de clave, filtro a la API en minúsculas, 404 → lista vacía, 5xx → `Server`, fallo de red → `Connectivity` |
+| `:app` (11) | ViewModels con `coroutines-test` + Turbine. Búsqueda: **cancelación de la búsqueda anterior**, debounce, blank → Idle, sin resultados → Empty, fallo → Error, reintento tras error, **cambiar el filtro cancela la búsqueda en curso**, el reintento conserva el filtro. Detalle: carga del id solicitado, fallo → Error, reintento tras error |
+| `:app` semantics (16) | Contrato de accesibilidad en JVM (Robolectric + compose-ui-test, sin emulador): etiquetas, live regions, encabezado, campos fusionados, rol de botón, posición en lista, estado de selección de los chips de filtro y acción Buscar del teclado |
 
 ## Accesibilidad
 
 Accesibilidad con TalkBack verificada en dispositivo físico: etiquetas, anuncios de los cambios
 de estado (cargando, error, sin resultados) mediante live regions, encabezado del detalle para
 la navegación por encabezados, flujo de error con reintento y anuncio de la posición en la lista
-de resultados ("elemento N de M") vía `collectionInfo`/`collectionItemInfo`. Ese contrato de
-semántica queda además fijado por 13 tests JVM que corren en el CI (ver tabla de tests).
+de resultados ("elemento N de M") vía `collectionInfo`/`collectionItemInfo`. Los chips del
+filtro de estado exponen su estado de selección (son `FilterChip` de Material 3, que ya lo
+anuncia a TalkBack). Ese contrato de semántica queda además fijado por 15 tests JVM que corren
+en el CI (ver tabla de tests).
 
 ## Integración continua
 

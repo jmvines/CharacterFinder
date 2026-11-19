@@ -1,6 +1,8 @@
 package com.characterfinder.app.ui.search
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -13,11 +15,13 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -48,6 +52,7 @@ import coil.compose.AsyncImage
 import com.characterfinder.app.R
 import com.characterfinder.app.ui.messageRes
 import com.characterfinder.domain.model.Character
+import com.characterfinder.domain.model.CharacterStatus
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
@@ -56,6 +61,7 @@ fun SearchScreen(
     viewModel: SearchViewModel = koinViewModel(),
 ) {
     val query by viewModel.query.collectAsStateWithLifecycle()
+    val statusFilter by viewModel.statusFilter.collectAsStateWithLifecycle()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     // announceForAccessibility: las liveRegion de Compose no anuncian de forma fiable
@@ -90,6 +96,10 @@ fun SearchScreen(
                 // para dejar ver los resultados.
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                 keyboardActions = KeyboardActions(onSearch = { keyboardController?.hide() }),
+            )
+            StatusFilterRow(
+                selected = statusFilter,
+                onSelect = viewModel::onStatusFilterChange,
             )
             Box(modifier = Modifier.fillMaxSize()) {
                 val state = uiState
@@ -140,6 +150,40 @@ fun SearchScreen(
         }
     }
 }
+
+/**
+ * Filtro de estado como chips de selección única; "Todos" = sin filtro (`null`).
+ * [FilterChip] ya expone a TalkBack el estado de selección, sin semantics manuales.
+ */
+@Composable
+private fun StatusFilterRow(
+    selected: CharacterStatus?,
+    onSelect: (CharacterStatus?) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState())
+            .padding(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        statusFilterOptions.forEach { (status, labelRes) ->
+            FilterChip(
+                selected = selected == status,
+                onClick = { onSelect(status) },
+                label = { Text(stringResource(labelRes)) },
+            )
+        }
+    }
+}
+
+private val statusFilterOptions = listOf(
+    null to R.string.filter_all,
+    CharacterStatus.ALIVE to R.string.filter_alive,
+    CharacterStatus.DEAD to R.string.filter_dead,
+    CharacterStatus.UNKNOWN to R.string.filter_unknown,
+)
 
 /**
  * Mensaje de estado sobre un nodo de texto que existe en TODOS los estados: TalkBack solo

@@ -7,12 +7,16 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertHasClickAction
+import androidx.compose.ui.test.assertIsNotSelected
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import com.characterfinder.app.ui.theme.CharacterFinderTheme
 import com.characterfinder.domain.model.Character
+import com.characterfinder.domain.model.CharacterStatus
 import com.characterfinder.domain.repository.CharacterRepository
 import com.characterfinder.domain.result.DomainError
 import com.characterfinder.domain.result.Either
@@ -44,7 +48,7 @@ class SearchScreenSemanticsTest {
         var responseDelayMillis = 0L
         var resultsForQuery: (String) -> Either<DomainError, List<Character>> = { Either.Right(emptyList()) }
 
-        override suspend fun search(query: String): Either<DomainError, List<Character>> {
+        override suspend fun search(query: String, status: CharacterStatus?): Either<DomainError, List<Character>> {
             delay(responseDelayMillis)
             return resultsForQuery(query)
         }
@@ -85,6 +89,27 @@ class SearchScreenSemanticsTest {
 
         compose.onNodeWithText("Busca un personaje")
             .assert(SemanticsMatcher.expectValue(SemanticsProperties.ImeAction, ImeAction.Search))
+    }
+
+    @Test
+    fun `los chips de filtro exponen la seleccion con Todos activo por defecto`() {
+        setScreen()
+
+        compose.onNodeWithText("Todos").assertIsSelected()
+        compose.onNodeWithText("Vivos").assertIsNotSelected()
+        compose.onNodeWithText("Muertos").assertIsNotSelected()
+        compose.onNodeWithText("Desconocido").assertIsNotSelected()
+    }
+
+    @Test
+    fun `elegir un filtro mueve la seleccion a su chip`() {
+        setScreen()
+
+        compose.onNodeWithText("Vivos").performClick()
+        compose.waitForIdle()
+
+        compose.onNodeWithText("Vivos").assertIsSelected()
+        compose.onNodeWithText("Todos").assertIsNotSelected()
     }
 
     @Test

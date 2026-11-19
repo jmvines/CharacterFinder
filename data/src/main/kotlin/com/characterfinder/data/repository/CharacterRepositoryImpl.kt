@@ -4,6 +4,7 @@ import com.characterfinder.data.cache.SearchCache
 import com.characterfinder.data.remote.RickAndMortyApi
 import com.characterfinder.data.remote.toDomain
 import com.characterfinder.domain.model.Character
+import com.characterfinder.domain.model.CharacterStatus
 import com.characterfinder.domain.repository.CharacterRepository
 import com.characterfinder.domain.result.DomainError
 import com.characterfinder.domain.result.Either
@@ -16,13 +17,20 @@ class CharacterRepositoryImpl(
     private val cache: SearchCache,
 ) : CharacterRepository {
 
-    override suspend fun search(query: String): Either<DomainError, List<Character>> {
-        val key = query.trim().lowercase()
+    override suspend fun search(
+        query: String,
+        status: CharacterStatus?,
+    ): Either<DomainError, List<Character>> {
+        val name = query.trim().lowercase()
+        val statusParam = status?.name?.lowercase()
+        // La clave de caché incluye el filtro: la misma query con filtros distintos
+        // son resultados distintos y no deben pisarse.
+        val key = "$name|${statusParam.orEmpty()}"
         cache.get(key)?.let { return Either.Right(it) }
 
         return try {
             val characters = try {
-                api.searchCharacters(key).results.map { it.toDomain() }
+                api.searchCharacters(name, statusParam).results.map { it.toDomain() }
             } catch (e: HttpException) {
                 // La API de Rick & Morty responde 404 cuando la búsqueda no tiene coincidencias.
                 if (e.code() == 404) emptyList() else throw e

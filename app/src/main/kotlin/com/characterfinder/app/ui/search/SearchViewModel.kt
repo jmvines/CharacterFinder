@@ -2,6 +2,7 @@ package com.characterfinder.app.ui.search
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.characterfinder.domain.model.CharacterStatus
 import com.characterfinder.domain.result.DomainError
 import com.characterfinder.domain.result.fold
 import com.characterfinder.domain.usecase.SearchCharactersUseCase
@@ -13,6 +14,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
@@ -28,6 +30,9 @@ class SearchViewModel(
     private val _query = MutableStateFlow("")
     val query: StateFlow<String> = _query.asStateFlow()
 
+    private val _statusFilter = MutableStateFlow<CharacterStatus?>(null)
+    val statusFilter: StateFlow<CharacterStatus?> = _statusFilter.asStateFlow()
+
     /**
      * Reemitir el mismo valor en un [MutableStateFlow] no dispara el pipeline (conflación),
      * así que el reintento necesita su propio trigger que reemita el query actual sin debounce.
@@ -41,16 +46,19 @@ class SearchViewModel(
      */
     @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
     val uiState: StateFlow<SearchUiState> = merge(
-        _query.debounce(DEBOUNCE_MILLIS),
-        retryTrigger.map { _query.value },
+        // El filtro entra en el mismo pipeline que el texto (combine): cambiarlo relanza la
+        // búsqueda sin debounce — es un gesto deliberado, no tecleo — y cancela la que hubiera
+        // en curso, igual que un query nuevo.
+        combine(_query.debounce(DEBOUNCE_MILLIS), _statusFilter, ::SearchRequest),
+        retryTrigger.map { SearchRequest(_query.value, _statusFilter.value) },
     )
-        .flatMapLatest { query ->
+        .flatMapLatest { (query, status) ->
             if (query.isBlank()) {
                 flowOf(SearchUiState.Idle)
             } else {
                 flow {
                     emit(SearchUiState.Loading)
-                    val state = searchCharacters(query).fold(
+                    val state = searchCharacters(query, status).fold(
                         ifLeft = { SearchUiState.Error(it) },
                         ifRight = { characters ->
                             if (characters.isEmpty()) SearchUiState.Empty
@@ -67,9 +75,15 @@ class SearchViewModel(
         _query.value = value
     }
 
+    fun onStatusFilterChange(status: CharacterStatus?) {
+        _statusFilter.value = status
+    }
+
     fun retry() {
         retryTrigger.tryEmit(Unit)
     }
+
+    private data class SearchRequest(val query: String, val status: CharacterStatus?)
 
     private companion object {
         const val DEBOUNCE_MILLIS = 300L

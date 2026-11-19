@@ -12,6 +12,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.characterfinder.app.ui.theme.CharacterFinderTheme
 import com.characterfinder.domain.model.Character
+import com.characterfinder.domain.model.CharacterStatus
 import com.characterfinder.domain.repository.CharacterRepository
 import com.characterfinder.domain.result.DomainError
 import com.characterfinder.domain.result.Either
@@ -42,7 +43,7 @@ class DetailScreenSemanticsTest {
         var responseDelayMillis = 0L
         var characterForId: (Int) -> Either<DomainError, Character> = { id -> Either.Right(stub(id, "Rick Sanchez")) }
 
-        override suspend fun search(query: String): Either<DomainError, List<Character>> =
+        override suspend fun search(query: String, status: CharacterStatus?): Either<DomainError, List<Character>> =
             error("sin uso en estos tests")
 
         override suspend fun getCharacter(id: Int): Either<DomainError, Character> {

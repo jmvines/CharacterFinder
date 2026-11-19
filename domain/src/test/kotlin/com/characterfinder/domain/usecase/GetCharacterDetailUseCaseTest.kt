@@ -1,6 +1,7 @@
 package com.characterfinder.domain.usecase
 
 import com.characterfinder.domain.model.Character
+import com.characterfinder.domain.model.CharacterStatus
 import com.characterfinder.domain.repository.CharacterRepository
 import com.characterfinder.domain.result.DomainError
 import com.characterfinder.domain.result.Either
@@ -14,7 +15,7 @@ class GetCharacterDetailUseCaseTest {
         val requestedIds = mutableListOf<Int>()
         var character: Either<DomainError, Character> = Either.Right(characterStub(1, "Rick Sanchez"))
 
-        override suspend fun search(query: String): Either<DomainError, List<Character>> =
+        override suspend fun search(query: String, status: CharacterStatus?): Either<DomainError, List<Character>> =
             error("sin uso en estos tests")
 
         override suspend fun getCharacter(id: Int): Either<DomainError, Character> {

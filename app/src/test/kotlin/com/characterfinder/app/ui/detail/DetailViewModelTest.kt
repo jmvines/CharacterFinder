@@ -3,6 +3,7 @@ package com.characterfinder.app.ui.detail
 import app.cash.turbine.test
 import com.characterfinder.app.MainDispatcherRule
 import com.characterfinder.domain.model.Character
+import com.characterfinder.domain.model.CharacterStatus
 import com.characterfinder.domain.repository.CharacterRepository
 import com.characterfinder.domain.result.DomainError
 import com.characterfinder.domain.result.Either
@@ -23,7 +24,7 @@ class DetailViewModelTest {
         var failing = false
         val requestedIds = mutableListOf<Int>()
 
-        override suspend fun search(query: String): Either<DomainError, List<Character>> =
+        override suspend fun search(query: String, status: CharacterStatus?): Either<DomainError, List<Character>> =
             Either.Right(emptyList())
 
         override suspend fun getCharacter(id: Int): Either<DomainError, Character> {

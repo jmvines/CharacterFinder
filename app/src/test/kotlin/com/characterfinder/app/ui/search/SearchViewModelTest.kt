@@ -3,6 +3,7 @@ package com.characterfinder.app.ui.search
 import app.cash.turbine.test
 import com.characterfinder.app.MainDispatcherRule
 import com.characterfinder.domain.model.Character
+import com.characterfinder.domain.model.CharacterStatus
 import com.characterfinder.domain.repository.CharacterRepository
 import com.characterfinder.domain.result.DomainError
 import com.characterfinder.domain.result.Either
@@ -29,10 +30,15 @@ class SearchViewModelTest {
             Either.Right(listOf(characterStub(1, query)))
         }
         val searchedQueries = mutableListOf<String>()
+        val searchedStatuses = mutableListOf<CharacterStatus?>()
         val cancelledQueries = mutableListOf<String>()
 
-        override suspend fun search(query: String): Either<DomainError, List<Character>> {
+        override suspend fun search(
+            query: String,
+            status: CharacterStatus?,
+        ): Either<DomainError, List<Character>> {
             searchedQueries += query
+            searchedStatuses += status
             try {
                 delay(responseDelayMillis)
             } catch (e: CancellationException) {
@@ -147,6 +153,54 @@ class SearchViewModelTest {
             val success = awaitItem() as SearchUiState.Success
             assertEquals(listOf("rick"), success.characters.map { it.name })
             assertEquals(listOf("rick", "rick"), repository.searchedQueries)
+        }
+    }
+
+    @Test
+    fun `cambiar el filtro de estado relanza la busqueda cancelando la que esta en curso`() = runTest {
+        repository.responseDelayMillis = 1_000
+        val viewModel = viewModel()
+
+        viewModel.uiState.test {
+            assertEquals(SearchUiState.Idle, awaitItem())
+
+            viewModel.onQueryChange("rick")
+            advanceTimeBy(400)
+            assertEquals(SearchUiState.Loading, awaitItem())
+
+            viewModel.onStatusFilterChange(CharacterStatus.ALIVE) // sin esperar al debounce
+            advanceTimeBy(2_000)
+
+            awaitItem() as SearchUiState.Success
+            assertEquals(listOf("rick"), repository.cancelledQueries)
+            assertEquals(listOf(null, CharacterStatus.ALIVE), repository.searchedStatuses)
+            expectNoEvents()
+        }
+    }
+
+    @Test
+    fun `el reintento tras un error conserva el filtro activo`() = runTest {
+        var failing = true
+        repository.resultForQuery = { query ->
+            if (failing) Either.Left(DomainError.Server) else Either.Right(listOf(characterStub(1, query)))
+        }
+        val viewModel = viewModel()
+
+        viewModel.uiState.test {
+            assertEquals(SearchUiState.Idle, awaitItem())
+
+            viewModel.onQueryChange("rick")
+            viewModel.onStatusFilterChange(CharacterStatus.DEAD)
+            advanceTimeBy(400)
+            assertEquals(SearchUiState.Loading, awaitItem())
+            assertEquals(SearchUiState.Error(DomainError.Server), awaitItem())
+
+            failing = false
+            viewModel.retry()
+
+            assertEquals(SearchUiState.Loading, awaitItem())
+            awaitItem() as SearchUiState.Success
+            assertEquals(listOf(CharacterStatus.DEAD, CharacterStatus.DEAD), repository.searchedStatuses)
         }
     }
 

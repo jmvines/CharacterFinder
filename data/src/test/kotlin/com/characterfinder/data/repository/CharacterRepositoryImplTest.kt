@@ -6,6 +6,7 @@ import com.characterfinder.data.remote.CharacterDto
 import com.characterfinder.data.remote.CharacterPageDto
 import com.characterfinder.data.remote.RickAndMortyApi
 import com.characterfinder.domain.model.Character
+import com.characterfinder.domain.model.CharacterStatus
 import com.characterfinder.domain.result.DomainError
 import com.characterfinder.domain.result.Either
 import kotlinx.coroutines.test.runTest
@@ -21,10 +22,12 @@ class CharacterRepositoryImplTest {
 
     private class FakeApi : RickAndMortyApi {
         val searchedNames = mutableListOf<String>()
+        val searchedStatuses = mutableListOf<String?>()
         var searchException: Exception? = null
 
-        override suspend fun searchCharacters(name: String): CharacterPageDto {
+        override suspend fun searchCharacters(name: String, status: String?): CharacterPageDto {
             searchedNames += name
+            searchedStatuses += status
             searchException?.let { throw it }
             return CharacterPageDto(results = listOf(characterDtoStub(1, name)))
         }
@@ -67,6 +70,27 @@ class CharacterRepositoryImplTest {
         repository.search("  rick ")
 
         assertEquals(listOf("rick"), api.searchedNames)
+    }
+
+    @Test
+    fun `el filtro de estado llega a la api como su valor en minusculas y sin filtro va null`() = runTest {
+        repository.search("rick")
+        repository.search("morty", CharacterStatus.ALIVE)
+
+        assertEquals(listOf(null, "alive"), api.searchedStatuses)
+    }
+
+    @Test
+    fun `la misma query con filtros distintos no comparte entrada de cache`() = runTest {
+        repository.search("rick")
+        repository.search("rick", CharacterStatus.ALIVE)
+        repository.search("rick", CharacterStatus.DEAD)
+
+        assertEquals(3, api.searchedNames.size)
+
+        // Cada combinación query+filtro sí queda cacheada por separado.
+        repository.search("rick", CharacterStatus.ALIVE)
+        assertEquals(3, api.searchedNames.size)
     }
 
     @Test

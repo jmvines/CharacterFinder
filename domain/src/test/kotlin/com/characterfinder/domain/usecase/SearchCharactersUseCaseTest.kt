@@ -1,6 +1,7 @@
 package com.characterfinder.domain.usecase
 
 import com.characterfinder.domain.model.Character
+import com.characterfinder.domain.model.CharacterStatus
 import com.characterfinder.domain.repository.CharacterRepository
 import com.characterfinder.domain.result.DomainError
 import com.characterfinder.domain.result.Either
@@ -13,10 +14,15 @@ class SearchCharactersUseCaseTest {
 
     private class FakeRepository : CharacterRepository {
         val searchedQueries = mutableListOf<String>()
+        val searchedStatuses = mutableListOf<CharacterStatus?>()
         var result: Either<DomainError, List<Character>> = Either.Right(emptyList())
 
-        override suspend fun search(query: String): Either<DomainError, List<Character>> {
+        override suspend fun search(
+            query: String,
+            status: CharacterStatus?,
+        ): Either<DomainError, List<Character>> {
             searchedQueries += query
+            searchedStatuses += status
             return result
         }
 
@@ -40,6 +46,14 @@ class SearchCharactersUseCaseTest {
         useCase("  rick  ")
 
         assertEquals(listOf("rick"), repository.searchedQueries)
+    }
+
+    @Test
+    fun `propaga el filtro de estado al repositorio y por defecto no filtra`() = runTest {
+        useCase("rick")
+        useCase("rick", CharacterStatus.ALIVE)
+
+        assertEquals(listOf(null, CharacterStatus.ALIVE), repository.searchedStatuses)
     }
 
     @Test
