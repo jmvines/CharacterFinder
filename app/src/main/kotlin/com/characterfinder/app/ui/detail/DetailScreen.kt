@@ -79,6 +79,7 @@ fun DetailScreen(
                     Text(
                         text = stringResource(R.string.detail_title),
                         modifier = Modifier
+                            .semantics { heading() }
                             .focusRequester(titleFocus)
                             .focusable(),
                     )
@@ -157,7 +158,6 @@ private fun CharacterDetail(character: Character, modifier: Modifier = Modifier)
         Spacer(modifier = Modifier.height(16.dp))
         Text(
             text = character.name,
-            modifier = Modifier.semantics { heading() },
             style = MaterialTheme.typography.headlineSmall,
         )
         Spacer(modifier = Modifier.height(16.dp))

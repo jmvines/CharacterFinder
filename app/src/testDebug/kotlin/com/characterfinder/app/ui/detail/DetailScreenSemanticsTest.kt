@@ -65,11 +65,14 @@ class DetailScreenSemanticsTest {
     }
 
     @Test
-    fun `el nombre del personaje es un encabezado`() {
+    fun `el titulo Detalle es el encabezado de la pantalla`() {
         setScreen()
 
-        compose.onNodeWithText("Rick Sanchez")
+        compose.onNodeWithText("Detalle")
             .assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading))
+        // El nombre del personaje ya no es encabezado: el de la pantalla es "Detalle".
+        compose.onNodeWithText("Rick Sanchez")
+            .assert(SemanticsMatcher.keyNotDefined(SemanticsProperties.Heading))
     }
 
     @Test
