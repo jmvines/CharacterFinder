@@ -44,7 +44,7 @@ Tres módulos Gradle, con la regla de dependencias apuntando siempre hacia el do
 - **`:data`** — implementación del repositorio con Retrofit + kotlinx-serialization, DTOs con
   mapper a dominio y la caché de búsquedas.
 - **`:app`** — Jetpack Compose + Material 3, un ViewModel por pantalla con `StateFlow` de estado
-  inmutable (sealed interface `Idle/Loading/Empty/Error/Success`), Navigation Compose y Koin
+  inmutable (sealed interface `Idle/Loading/Empty/Error/Success`), Navigation 3 y Koin
   para la inyección de dependencias.
 
 ## Cancelación
