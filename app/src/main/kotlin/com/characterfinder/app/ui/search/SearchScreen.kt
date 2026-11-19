@@ -1,6 +1,7 @@
 package com.characterfinder.app.ui.search
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -30,9 +31,13 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import android.view.accessibility.AccessibilityManager
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
@@ -86,12 +91,24 @@ fun SearchScreen(
                 .padding(padding),
         ) {
             val keyboardController = LocalSoftwareKeyboardController.current
+            val searchFieldFocus = remember { FocusRequester() }
+            // Foco inicial para lectores de pantalla: TalkBack evita colocar su foco inicial
+            // en campos de edición y se iría al siguiente elemento accionable (los filtros).
+            // Con el foco de entrada puesto aquí, TalkBack siempre arranca en la búsqueda.
+            // Condicionado a exploración táctil para no abrir el teclado a quien no la usa.
+            LaunchedEffect(Unit) {
+                val accessibility = view.context.getSystemService(AccessibilityManager::class.java)
+                if (accessibility?.isTouchExplorationEnabled == true) {
+                    searchFieldFocus.requestFocus()
+                }
+            }
             OutlinedTextField(
                 value = query,
                 onValueChange = viewModel::onQueryChange,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
+                    .padding(16.dp)
+                    .focusRequester(searchFieldFocus),
                 label = { Text(stringResource(R.string.search_hint)) },
                 singleLine = true,
                 // La búsqueda es reactiva al escribir; la acción Buscar solo oculta el teclado
@@ -157,9 +174,11 @@ fun SearchScreen(
  * Filtro de estado como chips de selección única; "Todos" = sin filtro (`null`).
  * [FilterChip] ya expone el estado de selección; [selectableGroup] marca la fila como grupo y
  * el rol radio sustituye al checkbox del componente porque marcar un chip desmarca el resto.
- * El contentDescription de la fila la convierte en un nodo propio de accesibilidad: TalkBack
- * la enfoca entera (marco alrededor de los cuatro chips) y anuncia la zona antes de entrar
- * a los chips individuales.
+ * La supercaja de accesibilidad es el Box exterior: etiquetado y focusable, es una parada
+ * propia del recorrido de TalkBack que engloba los cuatro chips (marco alrededor de todos,
+ * anuncia la zona) antes de entrar a cada chip. Va en un nodo SEPARADO de la fila con scroll:
+ * TalkBack trata los contenedores desplazables como listas y salta directamente a sus
+ * elementos, así que etiqueta y scroll no pueden compartir nodo.
  */
 @Composable
 private fun StatusFilterRow(
@@ -167,23 +186,29 @@ private fun StatusFilterRow(
     onSelect: (CharacterStatus?) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val groupLabel = stringResource(R.string.filter_group_label)
-    Row(
+    val groupLabel = stringResource(R.string.filter_group_label, statusFilterOptions.size)
+    Box(
         modifier = modifier
             .fillMaxWidth()
-            .horizontalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp)
             .semantics { contentDescription = groupLabel }
-            .selectableGroup(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+            .focusable(),
     ) {
-        statusFilterOptions.forEach { (status, labelRes) ->
-            FilterChip(
-                selected = selected == status,
-                onClick = { onSelect(status) },
-                label = { Text(stringResource(labelRes)) },
-                modifier = Modifier.semantics { role = Role.RadioButton },
-            )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp)
+                .selectableGroup(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            statusFilterOptions.forEach { (status, labelRes) ->
+                FilterChip(
+                    selected = selected == status,
+                    onClick = { onSelect(status) },
+                    label = { Text(stringResource(labelRes)) },
+                    modifier = Modifier.semantics { role = Role.RadioButton },
+                )
+            }
         }
     }
 }
