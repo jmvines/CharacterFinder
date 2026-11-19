@@ -304,10 +304,19 @@ private fun CharacterRow(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // El lector no lee el texto visual de la fila sino esta descripción, que etiqueta cada
+    // campo (Nombre/Especie/Estado): "Human · Alive" a secas no dice qué es cada cosa.
+    val rowDescription = stringResource(
+        R.string.character_row_description,
+        character.name,
+        character.species,
+        character.status,
+    )
     Row(
         modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = onClick, role = Role.Button)
+            .semantics { contentDescription = rowDescription }
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

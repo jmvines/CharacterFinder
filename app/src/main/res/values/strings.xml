@@ -22,6 +22,8 @@
         <item quantity="one">%d resultado encontrado</item>
         <item quantity="other">%d resultados encontrados</item>
     </plurals>
+    <!-- Lo que anuncia el lector de pantalla en cada fila de resultados, con cada campo etiquetado. -->
+    <string name="character_row_description">Nombre: %1$s. Especie: %2$s. Estado: %3$s.</string>
     <string name="back">Volver</string>
     <string name="detail_title">Detalle</string>
     <string name="detail_status">Estado</string>

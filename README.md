@@ -76,14 +76,14 @@ pisan —, con **TTL de 3 minutos** y acceso protegido por `Mutex`.
 - El reloj se inyecta como `() -> Long`, de modo que los tests de expiración mueven el tiempo
   sin esperas reales.
 
-## Tests (47)
+## Tests (48)
 
 | Módulo | Qué cubre |
 |---|---|
 | `:domain` (5) | Casos de uso con repositorio fake: query en blanco no toca el repo, trim, delegación, propagación del filtro de estado |
 | `:data` (12) | Caché: hit dentro del TTL, expiración, entradas por query, **claves independientes por filtro de estado**. Repositorio: segunda búsqueda sin red, expiración vuelve a red, normalización de clave, filtro a la API en minúsculas, 404 → lista vacía, 5xx → `Server`, fallo de red → `Connectivity` |
 | `:app` (11) | ViewModels con `coroutines-test` + Turbine. Búsqueda: **cancelación de la búsqueda anterior**, debounce, blank → Idle, sin resultados → Empty, fallo → Error, reintento tras error, **cambiar el filtro cancela la búsqueda en curso**, el reintento conserva el filtro. Detalle: carga del id solicitado, fallo → Error, reintento tras error |
-| `:app` semantics (19) | Contrato de accesibilidad en JVM (Robolectric + compose-ui-test, sin emulador): etiquetas, live regions, encabezado, campos fusionados, rol de botón, posición en lista, supercajas de filtros y de resultados con su recuento, grupo de selección única con rol radio y estado de los chips, foco inicial en el título del detalle y acción Buscar del teclado |
+| `:app` semantics (20) | Contrato de accesibilidad en JVM (Robolectric + compose-ui-test, sin emulador): etiquetas, live regions, encabezado, campos fusionados, rol de botón, posición en lista, cada resultado anunciado con sus campos etiquetados (Nombre/Especie/Estado), supercajas de filtros y de resultados con su recuento, grupo de selección única con rol radio y estado de los chips, foco inicial en el título del detalle y acción Buscar del teclado |
 
 ## Accesibilidad
 
@@ -98,10 +98,12 @@ está activo. Esa parada es un **nodo hoja** con la etiqueta dibujado tras los c
 TalkBack salta en la navegación lineal los contenedores cuyos hijos ya son enfocables,
 pero nunca una hoja con contenido, y al ir detrás no interfiere con la exploración táctil
 de los chips. La lista de resultados tiene su parada equivalente ("Lista de resultados,
-N personajes") antes de entrar personaje a personaje. Con un lector activo, el foco inicial
+N personajes") antes de entrar personaje a personaje, y cada resultado se anuncia con sus
+campos etiquetados ("Nombre: … Especie: … Estado: …") en vez del texto visual a secas.
+Con un lector activo, el foco inicial
 se gestiona en las dos pantallas: al abrir la búsqueda se coloca en el campo (no en los
 filtros) y al entrar al detalle, en su título (no en la flecha de volver). Ese contrato de
-semántica queda además fijado por 18 tests JVM que corren en el CI (ver tabla de tests).
+semántica queda además fijado por 19 tests JVM que corren en el CI (ver tabla de tests).
 
 ## Integración continua
 

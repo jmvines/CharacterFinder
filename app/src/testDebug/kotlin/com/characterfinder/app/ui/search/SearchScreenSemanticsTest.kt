@@ -190,6 +190,16 @@ class SearchScreenSemanticsTest {
     }
 
     @Test
+    fun `cada fila anuncia sus campos etiquetados como Nombre Especie y Estado`() {
+        repository.resultsForQuery = { Either.Right(listOf(stub(1, "Rick Sanchez"))) }
+        setScreen().search("rick")
+
+        // El lector lee esta descripción en lugar del texto visual: cada campo con su etiqueta.
+        compose.onNodeWithContentDescription("Nombre: Rick Sanchez. Especie: Human. Estado: Alive.")
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button))
+    }
+
+    @Test
     fun `sin resultados anuncia el mensaje de vacio como region viva`() {
         repository.resultsForQuery = { Either.Right(emptyList()) }
         setScreen().search("nadie")
