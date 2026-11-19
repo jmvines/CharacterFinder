@@ -77,6 +77,14 @@ class SearchScreenSemanticsTest {
     }
 
     @Test
+    fun `el titulo es el encabezado de la pantalla`() {
+        setScreen()
+
+        compose.onNodeWithText("Buscar personajes")
+            .assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading))
+    }
+
+    @Test
     fun `el teclado ofrece la accion Buscar en el campo`() {
         setScreen()
 

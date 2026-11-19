@@ -57,7 +57,7 @@ class SearchViewModel(
                 }.catch { emit(SearchUiState.Error(DomainError.Unexpected)) }
             }
         }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SearchUiState.Idle)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), SearchUiState.Idle)
 
     fun onQueryChange(value: String) {
         _query.value = value
@@ -75,5 +75,6 @@ class SearchViewModel(
 
     private companion object {
         const val DEBOUNCE_MILLIS = 300L
+        const val STOP_TIMEOUT_MILLIS = 5_000L
     }
 }

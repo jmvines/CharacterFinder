@@ -54,6 +54,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.collectionInfo
 import androidx.compose.ui.semantics.collectionItemInfo
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
@@ -105,6 +106,13 @@ fun SearchScreen(
                     searchFieldFocus.requestFocus()
                 }
             }
+            Text(
+                text = stringResource(R.string.search_title),
+                modifier = Modifier
+                    .padding(start = 16.dp, top = 16.dp, end = 16.dp)
+                    .semantics { heading() },
+                style = MaterialTheme.typography.headlineSmall,
+            )
             OutlinedTextField(
                 value = query,
                 onValueChange = viewModel::onQueryChange,
@@ -304,7 +312,7 @@ private fun CharacterRow(
         Column {
             Text(text = character.name, style = MaterialTheme.typography.titleMedium)
             Text(
-                text = "${character.species} · ${character.status}",
+                text = stringResource(R.string.species_status_format, character.species, character.status),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
