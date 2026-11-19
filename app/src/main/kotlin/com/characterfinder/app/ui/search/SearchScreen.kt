@@ -41,6 +41,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.CollectionInfo
 import androidx.compose.ui.semantics.CollectionItemInfo
@@ -124,29 +125,54 @@ fun SearchScreen(
             Box(modifier = Modifier.fillMaxSize()) {
                 val state = uiState
                 if (state is SearchUiState.Success) {
-                    LazyColumn(
+                    // Supercaja de los resultados: mismo patrón que la de los filtros
+                    // (nodo hoja con la etiqueta tras la lista, inset de 1dp contra la
+                    // poda por cobertura) — parada propia con el recuento antes de
+                    // entrar elemento a elemento.
+                    Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .semantics {
-                                collectionInfo = CollectionInfo(
-                                    rowCount = state.characters.size,
-                                    columnCount = 1,
-                                )
-                            },
+                            .semantics { isTraversalGroup = true },
                     ) {
-                        itemsIndexed(state.characters, key = { _, character -> character.id }) { index, character ->
-                            CharacterRow(
-                                character = character,
-                                onClick = { onCharacterClick(character.id) },
-                                modifier = Modifier.semantics {
-                                    collectionItemInfo = CollectionItemInfo(
-                                        rowIndex = index,
-                                        rowSpan = 1,
-                                        columnIndex = 0,
-                                        columnSpan = 1,
-                                    )
+                        val resultsLabel = pluralStringResource(
+                            R.plurals.results_group_label,
+                            state.characters.size,
+                            state.characters.size,
+                        )
+                        Box(
+                            Modifier
+                                .matchParentSize()
+                                .semantics(mergeDescendants = true) {
+                                    traversalIndex = -1f
+                                    contentDescription = resultsLabel
                                 },
-                            )
+                        )
+                        Box(Modifier.padding(1.dp)) {
+                            LazyColumn(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .semantics {
+                                        collectionInfo = CollectionInfo(
+                                            rowCount = state.characters.size,
+                                            columnCount = 1,
+                                        )
+                                    },
+                            ) {
+                                itemsIndexed(state.characters, key = { _, character -> character.id }) { index, character ->
+                                    CharacterRow(
+                                        character = character,
+                                        onClick = { onCharacterClick(character.id) },
+                                        modifier = Modifier.semantics {
+                                            collectionItemInfo = CollectionItemInfo(
+                                                rowIndex = index,
+                                                rowSpan = 1,
+                                                columnIndex = 0,
+                                                columnSpan = 1,
+                                            )
+                                        },
+                                    )
+                                }
+                            }
                         }
                     }
                 }

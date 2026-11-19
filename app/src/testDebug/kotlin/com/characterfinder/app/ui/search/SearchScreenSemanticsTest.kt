@@ -145,6 +145,17 @@ class SearchScreenSemanticsTest {
     }
 
     @Test
+    fun `la lista de resultados tiene una supercaja con el recuento como parada previa`() {
+        repository.resultsForQuery = { Either.Right(listOf(stub(1, "Rick Sanchez"), stub(2, "Alien Rick"), stub(3, "Aqua Rick"))) }
+        setScreen().search("rick")
+
+        // Nodo hoja tras la lista, igual que la supercaja de los filtros: parada propia
+        // del recorrido con el recuento antes de entrar elemento a elemento.
+        compose.onNodeWithContentDescription("Lista de resultados, 3 personajes")
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.TraversalIndex, -1f))
+    }
+
+    @Test
     fun `la lista expone el numero total de elementos`() {
         repository.resultsForQuery = { Either.Right(listOf(stub(1, "Rick Sanchez"), stub(2, "Alien Rick"), stub(3, "Aqua Rick"))) }
         setScreen().search("rick")

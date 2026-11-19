@@ -14,6 +14,10 @@
     <string name="error_generic">Algo ha fallado. Inténtalo de nuevo.</string>
     <string name="retry">Reintentar</string>
     <string name="loading">Cargando</string>
+    <plurals name="results_group_label">
+        <item quantity="one">Lista de resultados, %d personaje</item>
+        <item quantity="other">Lista de resultados, %d personajes</item>
+    </plurals>
     <plurals name="search_results_count">
         <item quantity="one">%d resultado encontrado</item>
         <item quantity="other">%d resultados encontrados</item>
