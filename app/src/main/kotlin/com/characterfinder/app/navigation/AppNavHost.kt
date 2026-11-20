@@ -30,7 +30,11 @@ fun AppNavHost() {
         ),
         entryProvider = entryProvider {
             entry<SearchKey> {
-                SearchScreen(onCharacterClick = { id -> backStack.add(DetailKey(id)) })
+                SearchScreen(
+                    onCharacterClick = { id ->
+                        if (backStack.lastOrNull() != DetailKey(id)) backStack.add(DetailKey(id))
+                    },
+                )
             }
             entry<DetailKey> { key ->
                 DetailScreen(
