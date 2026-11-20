@@ -37,14 +37,14 @@ lo que parece mejorable y no lo es.
   no ha ejecutado nada, y la salida de consola no lo distingue. El CI corre `./gradlew test` a
   secas porque cada run clona el repositorio limpio y no hay `build/` previo que reutilizar.
 - `./gradlew build` ejecuta también los tests (`build` → `check` → `test`): no es solo compilar.
-- Ese build sale verde **con 13 warnings de lint conocidos y aceptados**: `OldTargetApi` por
-  `targetSdk 36`, `LockedOrientationActivity` y `DiscouragedApi` por el
-  `screenOrientation="portrait"` del manifiesto (el retrato es deliberado), seis
-  `GradleDependency` y un `AndroidGradlePluginVersion` por versiones más nuevas en el catálogo,
-  `PluralsCandidate` en `filter_group_label`, `ObsoleteSdkInt` en `mipmap-anydpi-v26` y un
-  `Typos` que toma «momento» por un «memento» mal escrito. No los "arregles": no subas
-  versiones, no quites la orientación fija y no reescribas strings por lint. Solo bloquean los
-  **errores** de lint.
+- Ese build sale verde **con warnings de lint conocidos y aceptados** —trece hoy, de los que
+  siete son `GradleDependency` y `AndroidGradlePluginVersion` por versiones más nuevas, así que
+  el número sube solo—: `OldTargetApi` por `targetSdk 36`, `LockedOrientationActivity` y
+  `DiscouragedApi` por el `screenOrientation="portrait"` del manifiesto (el retrato es
+  deliberado), `PluralsCandidate` en `filter_group_label`, `ObsoleteSdkInt` en
+  `mipmap-anydpi-v26` y un `Typos` que toma «momento» por un «memento» mal escrito. No los
+  "arregles": no subas versiones, no quites la orientación fija y no reescribas strings por
+  lint. Solo bloquean los **errores** de lint.
 - Los tests de semántica solo existen en la variante debug, así que un `testReleaseUnitTest`
   verde no dice nada sobre ellos.
 - `installDebug` instala en un dispositivo real: pide confirmación antes de lanzarlo.
@@ -62,7 +62,8 @@ lo que parece mejorable y no lo es.
   mensaje del commit, no al source.
 - Identificadores de producción en inglés. **Los nombres de test son la excepción**: una frase en
   español entre backticks y sin tildes, describiendo el comportamiento
-  (``fun `el debounce agrupa el tecleo en una sola busqueda`()``). Los 54 siguen ese patrón.
+  (``fun `el debounce agrupa el tecleo en una sola busqueda`()``). Todos los tests del
+  repositorio siguen ese patrón.
 - La UI es monolingüe en español: `app/src/main/res/values/strings.xml` es el único locale, no
   hay `values-en`. Un string nuevo se escribe en español y se lee con `stringResource` /
   `pluralStringResource`; no hay literales de texto en el código.
@@ -179,14 +180,13 @@ cambies por `semantics(mergeDescendants = true)`; está fijado por test.
 - Haz stage **por fichero explícito**. Nunca `git add .` ni por directorio: el árbol de trabajo
   puede tener cambios en curso que no son tuyos.
 - Mensajes de commit en español, asunto breve y descriptivo, sin trailers.
-- No commitees nada de lo que ya cubre `.gitignore` (`local.properties`, `.idea/`, `.kotlin/`,
-  `build/`, `.gradle/`).
-- No reescribas historia ya publicada ni hagas `force-push` a `main`.
+- No commitees `local.properties` ni nada de lo que ya cubre `.gitignore`.
 
 ## Alcance de los cambios
 
 - Cambio mínimo que resuelva lo pedido. No refactorices ni reformatees código adyacente que no
   haya que tocar; si ves algo roto fuera del alcance, menciónalo en vez de arreglarlo.
-- Lo que está fuera por decisión, no por olvido: persistencia en disco, paginación de
-  resultados, librerías de mocking y DI por generación de código. Están justificados en
-  "Decisiones principales" del README; no los introduzcas sin que se pidan.
+- Lo que está fuera por decisión, no por olvido: la persistencia en disco, la paginación de
+  resultados y las librerías de mocking, justificadas en "Decisiones principales" del README. La
+  DI es Koin por elección explícita: no la migres a generación de código. No introduzcas ninguna
+  de las cuatro sin que se pida.
