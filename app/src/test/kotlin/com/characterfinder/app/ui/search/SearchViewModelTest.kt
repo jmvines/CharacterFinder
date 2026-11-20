@@ -179,6 +179,30 @@ class SearchViewModelTest {
     }
 
     @Test
+    fun `cambiar el filtro con texto a medio escribir no lanza busqueda con el texto anterior`() = runTest {
+        val viewModel = viewModel()
+
+        viewModel.uiState.test {
+            assertEquals(SearchUiState.Idle, awaitItem())
+
+            viewModel.onQueryChange("rick")
+            advanceTimeBy(400)
+            assertEquals(SearchUiState.Loading, awaitItem())
+            awaitItem() as SearchUiState.Success
+
+            viewModel.onQueryChange("ricky")
+            advanceTimeBy(100)
+            viewModel.onStatusFilterChange(CharacterStatus.ALIVE)
+            advanceTimeBy(400)
+            assertEquals(SearchUiState.Loading, awaitItem())
+            awaitItem() as SearchUiState.Success
+
+            assertEquals(listOf("rick", "ricky"), repository.searchedQueries)
+            assertEquals(listOf(null, CharacterStatus.ALIVE), repository.searchedStatuses)
+        }
+    }
+
+    @Test
     fun `el reintento tras un error conserva el filtro activo`() = runTest {
         var failing = true
         repository.resultForQuery = { query ->

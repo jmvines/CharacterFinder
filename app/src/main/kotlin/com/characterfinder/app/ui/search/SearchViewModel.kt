@@ -15,8 +15,9 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
@@ -38,7 +39,10 @@ class SearchViewModel(
 
     @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
     val uiState: StateFlow<SearchUiState> = merge(
-        combine(_query.debounce(DEBOUNCE_MILLIS), _statusFilter, ::SearchRequest),
+        merge(
+            _query.debounce(DEBOUNCE_MILLIS).map { SearchRequest(it, _statusFilter.value) },
+            _statusFilter.drop(1).map { SearchRequest(_query.value, it) },
+        ).distinctUntilChanged(),
         retryTrigger.map { SearchRequest(_query.value, _statusFilter.value) },
     )
         .flatMapLatest { (query, status) ->

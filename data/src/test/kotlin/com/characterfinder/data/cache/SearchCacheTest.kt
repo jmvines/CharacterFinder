@@ -41,4 +41,19 @@ class SearchCacheTest {
         assertNull(cache.get("morty"))
         assertEquals(ricks, cache.get("rick"))
     }
+
+    @Test
+    fun `al superar el tope descarta la entrada menos usada`() = runTest {
+        val limited = SearchCache(ttlMillis = 1_000, maxEntries = 2, now = { now })
+        val rick = listOf(characterStub(1, "Rick Sanchez"))
+        val summer = listOf(characterStub(3, "Summer Smith"))
+        limited.put("rick", rick)
+        limited.put("morty", listOf(characterStub(2, "Morty Smith")))
+        limited.get("rick")
+        limited.put("summer", summer)
+
+        assertNull(limited.get("morty"))
+        assertEquals(rick, limited.get("rick"))
+        assertEquals(summer, limited.get("summer"))
+    }
 }
