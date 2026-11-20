@@ -1,9 +1,12 @@
 # AGENTS.md
 
-Convenciones operativas de este repositorio para herramientas de codificación automatizadas.
-El contexto funcional, la arquitectura y el por qué de cada decisión están en
-[README.md](README.md); aquí solo está lo que hay que respetar al tocar el código, y sobre todo
-lo que parece mejorable y no lo es.
+CharacterFinder es una app Android que busca personajes en la API pública de Rick & Morty,
+filtra por estado y muestra su detalle, con el dominio y los datos en módulos de Kotlin puro.
+
+Este fichero recoge las convenciones operativas del repositorio para herramientas de
+codificación automatizadas. El contexto funcional, la arquitectura y el por qué de cada decisión
+están en [README.md](README.md); aquí solo está lo que hay que respetar al tocar el código, y
+sobre todo lo que parece mejorable y no lo es.
 
 ## Estructura y regla de dependencias
 
@@ -182,6 +185,17 @@ cambies por `semantics(mergeDescendants = true)`; está fijado por test.
   puede tener cambios en curso que no son tuyos.
 - Mensajes de commit en español, asunto breve y descriptivo, sin trailers.
 - No commitees `local.properties` ni nada de lo que ya cubre `.gitignore`.
+
+## Antes de dar un cambio por terminado
+
+1. `./gradlew test --rerun-tasks` y comprobar en los XML que ningún test falla y que el total no
+   ha bajado.
+2. `./gradlew build`, para que pasen también el compilador y el lint. Solo bloquean los errores
+   de lint, no los warnings de la lista de arriba.
+3. Si el cambio toca strings, actualiza en el mismo commit las aserciones de
+   `app/src/testDebug` que los citan literalmente.
+4. Si el cambio toca la UI o la semántica, repasa la sección de accesibilidad: las medidas y el
+   foco inicial no los cubre la suite y se comprueban a mano con un lector de pantalla.
 
 ## Alcance de los cambios
 
