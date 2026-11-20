@@ -37,8 +37,9 @@ sobre todo lo que parece mejorable y no lo es.
 
 - En local usa `--rerun-tasks` (o `cleanTest test`) y comprueba los XML de
   `*/build/test-results/**/TEST-*.xml`: un `UP-TO-DATE` de Gradle puede dar por bueno un run que
-  no ha ejecutado nada, y la salida de consola no lo distingue. El CI corre `./gradlew test` a
-  secas porque cada run clona el repositorio limpio y no hay `build/` previo que reutilizar.
+  no ha ejecutado nada, y la salida de consola no lo distingue. El CI corre solo
+  `./gradlew build`, que ejecuta también los tests vía `check`, y le basta sin `--rerun-tasks`
+  porque cada run clona el repositorio limpio y no hay `build/` previo que reutilizar.
 - `./gradlew build` ejecuta también los tests (`build` → `check` → `test`): no es solo compilar.
 - Ese build sale verde **con warnings de lint conocidos y aceptados** —trece hoy, de los que
   siete son `GradleDependency` y `AndroidGradlePluginVersion` por versiones más nuevas, así que
@@ -93,12 +94,15 @@ sobre todo lo que parece mejorable y no lo es.
 
 ## Refactors "obvios" que son bugs
 
-- **El pipeline de `SearchViewModel` son dos ramas con `merge`, no un `combine`.** El texto
-  entra debounceado y el filtro entra inmediato, cada rama emparejando el valor *actual* de la
-  otra. Con `combine`, cambiar el filtro a media escritura emparejaría el filtro nuevo con el
-  último texto ya debounceado —el anterior— y lanzaría la petición con el texto viejo. Ese bug
-  existió y está cubierto por un test dedicado en `SearchViewModelTest` ("cambiar el filtro
-  con texto a medio escribir no lanza busqueda con el texto anterior").
+- **El `delay` del debounce vive dentro del `flatMapLatest` y el pipeline de `SearchViewModel`
+  son dos ramas con `merge`, no un `combine`.** Cada tecla emite un request al instante,
+  `flatMapLatest` cancela la búsqueda en vuelo —espera incluida— y solo la rama del tecleo
+  (`debounced = true` en `SearchRequest`) duerme 300 ms antes de pedir; el filtro y el retry
+  entran inmediatos, emparejados con el texto actual. Los dos refactors "obvios" aquí
+  reintroducen bugs que ya existieron y tienen test de regresión en `SearchViewModelTest`: subir
+  un `.debounce(300)` al flow del texto deja viva la búsqueda anterior durante la ventana de
+  300 ms y publica su resultado con el campo ya cambiado, y un `combine` de las dos fuentes
+  empareja el filtro nuevo con el último texto debounceado —el anterior—, no con el actual.
 - **`CancellationException` se relanza antes del `catch (e: Exception)`** en los dos métodos de
   `CharacterRepositoryImpl`. Cancelar la búsqueda en curso es el caso normal al teclear: sin ese
   `catch` previo, cada pulsación acabaría publicando un `DomainError` en la pantalla. No unifiques

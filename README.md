@@ -53,26 +53,31 @@ Tres módulos Gradle, con la regla de dependencias apuntando siempre hacia el do
 
 ## Cancelación
 
-El texto de búsqueda vive en un `StateFlow` en `SearchViewModel`. El pipeline
-`debounce(300 ms) → flatMapLatest { useCase(query) }` garantiza que:
+El texto de búsqueda vive en un `StateFlow` en `SearchViewModel`. Cada tecla emite un request
+al instante y `flatMapLatest` **cancela estructuradamente la corrutina de la búsqueda anterior**,
+lo que aborta también su llamada HTTP (Retrofit con funciones `suspend` coopera con la
+cancelación). El `delay` de 300 ms del debounce vive **dentro** del flow de cada búsqueda, no
+aguas arriba:
 
-- el tecleo rápido no dispara una petición por letra (debounce), y
-- **una búsqueda nueva cancela estructuradamente la corrutina de la anterior**
-  (`flatMapLatest`), lo que aborta también su llamada HTTP (Retrofit con funciones `suspend`
-  coopera con la cancelación). Nunca se publican resultados de una búsqueda obsoleta.
+- el tecleo rápido sigue agrupándose en una sola petición — cada tecla cancela la espera de la
+  anterior y arranca la suya —, y
+- la búsqueda en vuelo muere en la primera tecla; con el `debounce` aguas arriba sobrevivía la
+  ventana de 300 ms y podía publicar su resultado con el campo ya cambiado.
+
+Nunca se publican resultados de una búsqueda obsoleta.
 
 El filtro de estado (chips Todos/Vivos/Muertos/Desconocido) entra en el mismo pipeline como una
 **rama inmediata**, fusionada con la del tecleo (`merge`) y deduplicada
 (`distinctUntilChanged`): cambiarlo relanza la búsqueda **sin debounce** — es un gesto
 deliberado, no tecleo —, emparejado siempre con el texto actual del campo, y cancela igualmente
-la que hubiera en curso. Son dos ramas y no un `combine` precisamente por ese emparejamiento:
-combinando ambas fuentes, cambiar el filtro a media escritura habría emparejado el filtro nuevo
-con el último texto *ya debounceado* —el anterior— y habría disparado una petición con el texto
-viejo.
+la que hubiera en curso. Son dos ramas y no un `combine` porque cada request lleva marcada su
+fuente — solo la del tecleo espera los 300 ms — y porque `combine` ya causó un bug: emparejaba
+el filtro nuevo con el último texto *debounceado* —el anterior—, no con el actual.
 
-Está cubierto por un test (`SearchViewModelTest`): se lanza una búsqueda lenta, se emite otra
+Está cubierto por tests (`SearchViewModelTest`): se lanza una búsqueda lenta, se emite otra
 antes de que termine y se comprueba que la primera queda cancelada y que la UI solo recibe los
-resultados de la segunda.
+resultados de la segunda; y el caso contrario — una búsqueda vieja con respuesta rápida no
+publica nada si el texto cambió mientras la nueva esperaba su debounce.
 
 ## Caché
 
@@ -87,14 +92,14 @@ por `Mutex`.
   altera la expiración, y se inyecta como `() -> Long`, de modo que los tests mueven el tiempo
   sin esperas reales.
 
-## Tests (55)
+## Tests (56)
 
 | Módulo | Qué cubre |
 |---|---|
 | `:domain` (8) | `SearchQuery`: normalización y validez (única fuente de verdad de la validación del query). Casos de uso con repositorio fake: query en blanco no toca el repo, trim, delegación, propagación del filtro de estado |
 | `:data` (13) | Caché: hit dentro del TTL, expiración, entradas por query, **claves independientes por filtro de estado**, **descarte de la entrada menos usada al superar el tope**. Repositorio: segunda búsqueda sin red, expiración vuelve a red, normalización de clave, filtro a la API en minúsculas, 404 → lista vacía, 5xx → `Server`, fallo de red → `Connectivity` |
-| `:app` (13) | ViewModels con `coroutines-test` + Turbine. Búsqueda: **cancelación de la búsqueda anterior**, debounce, blank → Idle, sin resultados → Empty, fallo → Error, reintento tras error, **cambiar el filtro cancela la búsqueda en curso**, **cambiar el filtro a media escritura no busca con el texto anterior**, **dos cambios de filtro
-seguidos relanzan con el texto actual y sin peticiones de más**, el reintento conserva el filtro. Detalle: carga del id solicitado, fallo → Error, reintento tras error |
+| `:app` (14) | ViewModels con `coroutines-test` + Turbine. Búsqueda: **cancelación de la búsqueda anterior**, debounce, blank → Idle, sin resultados → Empty, fallo → Error, reintento tras error, **cambiar el filtro cancela la búsqueda en curso**, **cambiar el filtro a media escritura no busca con el texto anterior**, **dos cambios de filtro
+seguidos relanzan con el texto actual y sin peticiones de más**, **una respuesta rápida de una búsqueda vieja no se publica si el texto cambió durante el debounce**, el reintento conserva el filtro. Detalle: carga del id solicitado, fallo → Error, reintento tras error |
 | `:app` semantics (21) | Contrato de accesibilidad en JVM (Robolectric + compose-ui-test, sin emulador): etiquetas, live regions, encabezados de búsqueda y detalle, campos fusionados, rol de botón, posición en lista, cada resultado anunciado con sus campos etiquetados (Nombre/Especie/Estado), supercajas de filtros y de resultados con su recuento, grupo de selección única con rol radio y estado de los chips, título del detalle enfocable para recibir el foco inicial y acción Buscar del teclado |
 
 ## Accesibilidad
@@ -131,9 +136,9 @@ Workflow de GitHub Actions ([`ci.yml`](.github/workflows/ci.yml)) que corre en c
 `main`, en cada pull request y bajo demanda (`workflow_dispatch`, botón "Run workflow" en la
 pestaña Actions):
 
-1. **Tests unitarios** de los tres módulos, como paso explícito.
-2. **Build completo con lint** de Android (`./gradlew build`).
-3. Publica artifacts descargables: los dos cuando el run pasa y los informes de tests también
+1. **Build completo** (`./gradlew build`): compila y ejecuta en un único paso los tests de los
+   tres módulos y el lint de Android (`build` → `check` → `test`), sin correr la suite dos veces.
+2. Publica artifacts descargables: los dos cuando el run pasa y los informes de tests también
    cuando falla.
    - `character-finder-debug` — APK de debug instalable, para probar la app sin compilar nada.
    - `informes-de-tests` — informes HTML de Gradle, subidos también cuando los tests fallan
