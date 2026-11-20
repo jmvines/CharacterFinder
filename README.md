@@ -28,7 +28,8 @@ repositorio lo traduce a lista vacía (estado "sin resultados", no error).
 ./gradlew build               # compilación completa + tests + lint
 ```
 
-Requiere JDK 17 y el SDK de Android (`compileSdk` 37). No necesita ninguna clave ni configuración.
+Requiere JDK 17 o superior —el bytecode se fija a 17 en los tres módulos— y el SDK de Android
+(`compileSdk` 37). No necesita ninguna clave ni configuración.
 
 ## Arquitectura
 
@@ -40,11 +41,14 @@ Tres módulos Gradle, con la regla de dependencias apuntando siempre hacia el do
 
 - **`:domain`** — modelo `Character`, interfaz `CharacterRepository` y casos de uso
   (`SearchCharactersUseCase`, `GetCharacterDetailUseCase`). Sin ninguna dependencia de Android
-  ni de librerías de infraestructura: no puede "contaminarse" sin que el módulo deje de compilar.
+  ni de librerías de infraestructura. Al ser un módulo `kotlin-jvm`, cualquier uso de una API de
+  Android no compila; que tampoco entren red, DI o serialización es convención revisada a mano.
+  No hay test de arquitectura que lo vigile.
 - **`:data`** — implementación del repositorio con Retrofit + kotlinx-serialization, DTOs con
   mapper a dominio y la caché de búsquedas.
 - **`:app`** — Jetpack Compose + Material 3, un ViewModel por pantalla con `StateFlow` de estado
-  inmutable (sealed interface `Idle/Loading/Empty/Error/Success`), Navigation 3 y Koin
+  inmutable (sealed interface: `Idle/Loading/Empty/Error/Success` en la búsqueda,
+  `Loading/Error/Success` en el detalle), Navigation 3 y Koin
   para la inyección de dependencias.
 
 ## Cancelación
@@ -90,7 +94,7 @@ por `Mutex`.
 | `:domain` (8) | `SearchQuery`: normalización y validez (única fuente de verdad de la validación del query). Casos de uso con repositorio fake: query en blanco no toca el repo, trim, delegación, propagación del filtro de estado |
 | `:data` (13) | Caché: hit dentro del TTL, expiración, entradas por query, **claves independientes por filtro de estado**, **descarte de la entrada menos usada al superar el tope**. Repositorio: segunda búsqueda sin red, expiración vuelve a red, normalización de clave, filtro a la API en minúsculas, 404 → lista vacía, 5xx → `Server`, fallo de red → `Connectivity` |
 | `:app` (12) | ViewModels con `coroutines-test` + Turbine. Búsqueda: **cancelación de la búsqueda anterior**, debounce, blank → Idle, sin resultados → Empty, fallo → Error, reintento tras error, **cambiar el filtro cancela la búsqueda en curso**, **cambiar el filtro a media escritura no busca con el texto anterior**, el reintento conserva el filtro. Detalle: carga del id solicitado, fallo → Error, reintento tras error |
-| `:app` semantics (21) | Contrato de accesibilidad en JVM (Robolectric + compose-ui-test, sin emulador): etiquetas, live regions, encabezados de búsqueda y detalle, campos fusionados, rol de botón, posición en lista, cada resultado anunciado con sus campos etiquetados (Nombre/Especie/Estado), supercajas de filtros y de resultados con su recuento, grupo de selección única con rol radio y estado de los chips, foco inicial en el título del detalle y acción Buscar del teclado |
+| `:app` semantics (21) | Contrato de accesibilidad en JVM (Robolectric + compose-ui-test, sin emulador): etiquetas, live regions, encabezados de búsqueda y detalle, campos fusionados, rol de botón, posición en lista, cada resultado anunciado con sus campos etiquetados (Nombre/Especie/Estado), supercajas de filtros y de resultados con su recuento, grupo de selección única con rol radio y estado de los chips, título del detalle enfocable para recibir el foco inicial y acción Buscar del teclado |
 
 ## Accesibilidad
 
@@ -112,8 +116,13 @@ N personajes") antes de entrar personaje a personaje, y cada resultado se anunci
 campos etiquetados ("Nombre: … Especie: … Estado: …") en vez del texto visual a secas.
 Con un lector activo, el foco inicial
 se gestiona en las dos pantallas: al abrir la búsqueda se coloca en el campo (no en los
-filtros) y al entrar al detalle, en su título (no en la flecha de volver). Ese contrato de
-semántica queda además fijado por 21 tests JVM que corren en el CI (ver tabla de tests).
+filtros) y al entrar al detalle, en su título (no en la flecha de volver). De ese contrato, los
+21 tests JVM que corren en el CI fijan las etiquetas, los roles, el `traversalIndex` de las dos
+paradas, las live regions y la información de colección (ver tabla de tests). Lo que no puede
+cubrir una suite JVM son las medidas —el inset de 1 dp— ni el foco inicial, porque
+`compose-ui-test` lee el árbol de semantics de Compose y no el `AccessibilityNodeInfo` de la
+plataforma, y bajo Robolectric la exploración táctil está apagada: esa parte se verifica a mano
+con TalkBack en dispositivo.
 
 ## Integración continua
 
@@ -123,7 +132,8 @@ pestaña Actions):
 
 1. **Tests unitarios** de los tres módulos, como paso explícito.
 2. **Build completo con lint** de Android (`./gradlew build`).
-3. Publica dos artifacts descargables en cada run:
+3. Publica artifacts descargables: los dos cuando el run pasa y los informes de tests también
+   cuando falla.
    - `character-finder-debug` — APK de debug instalable, para probar la app sin compilar nada.
    - `informes-de-tests` — informes HTML de Gradle, subidos también cuando los tests fallan
      (`if: always()`), que es cuando más se necesitan.
@@ -142,12 +152,14 @@ Corre en `ubuntu-latest` con JDK 17 (Temurin) y caché de Gradle entre runs, y d
   distingue `Connectivity` (sin red), `Server` (5xx) y `Unexpected`, y la UI muestra un mensaje
   distinto por causa, con reintento en todos los casos.
 - **Validación como tipo (`SearchQuery`)**: la regla de qué es una búsqueda válida vive en un
-  value class del dominio; el ViewModel y el caso de uso la comparten sin duplicar el predicado
-  y la firma tipada impide pasar queries sin normalizar.
+  value class del dominio; el ViewModel y el caso de uso la comparten sin duplicar el predicado.
+  La frontera del repositorio sigue recibiendo `String`, porque la clave de caché necesita además
+  pasar a minúsculas, que no es asunto del dominio.
 - **Sin Room/persistencia**: el enunciado da por buena la caché en memoria; añadir disco sería
   superficie extra sin requisito que lo pida.
 - **Solo la primera página de resultados**: la API pagina de 20 en 20 (`info.next`); para el
   caso de uso — teclear un nombre y afinar la búsqueda — la primera página es suficiente, y
   paginar añadiría scroll infinito y estados intermedios sin requisito que lo pida.
-- **Material 3 con esquema de color por defecto** y pantallas deliberadamente sobrias: el
-  enunciado pide claridad, no diseño avanzado.
+- **Material 3 con los esquemas de color por defecto**, claro y oscuro según el ajuste del
+  sistema (`isSystemInDarkTheme`), y pantallas deliberadamente sobrias: el enunciado pide
+  claridad, no diseño avanzado.
