@@ -76,11 +76,11 @@ pisan —, con **TTL de 3 minutos** y acceso protegido por `Mutex`.
 - El reloj se inyecta como `() -> Long`, de modo que los tests de expiración mueven el tiempo
   sin esperas reales.
 
-## Tests (49)
+## Tests (52)
 
 | Módulo | Qué cubre |
 |---|---|
-| `:domain` (5) | Casos de uso con repositorio fake: query en blanco no toca el repo, trim, delegación, propagación del filtro de estado |
+| `:domain` (8) | `SearchQuery`: normalización y validez (única fuente de verdad de la validación del query). Casos de uso con repositorio fake: query en blanco no toca el repo, trim, delegación, propagación del filtro de estado |
 | `:data` (12) | Caché: hit dentro del TTL, expiración, entradas por query, **claves independientes por filtro de estado**. Repositorio: segunda búsqueda sin red, expiración vuelve a red, normalización de clave, filtro a la API en minúsculas, 404 → lista vacía, 5xx → `Server`, fallo de red → `Connectivity` |
 | `:app` (11) | ViewModels con `coroutines-test` + Turbine. Búsqueda: **cancelación de la búsqueda anterior**, debounce, blank → Idle, sin resultados → Empty, fallo → Error, reintento tras error, **cambiar el filtro cancela la búsqueda en curso**, el reintento conserva el filtro. Detalle: carga del id solicitado, fallo → Error, reintento tras error |
 | `:app` semantics (21) | Contrato de accesibilidad en JVM (Robolectric + compose-ui-test, sin emulador): etiquetas, live regions, encabezados de búsqueda y detalle, campos fusionados, rol de botón, posición en lista, cada resultado anunciado con sus campos etiquetados (Nombre/Especie/Estado), supercajas de filtros y de resultados con su recuento, grupo de selección única con rol radio y estado de los chips, foco inicial en el título del detalle y acción Buscar del teclado |

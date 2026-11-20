@@ -3,6 +3,7 @@ package com.characterfinder.app.ui.search
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.characterfinder.domain.model.CharacterStatus
+import com.characterfinder.domain.model.SearchQuery
 import com.characterfinder.domain.result.DomainError
 import com.characterfinder.domain.result.fold
 import com.characterfinder.domain.usecase.SearchCharactersUseCase
@@ -41,12 +42,13 @@ class SearchViewModel(
         retryTrigger.map { SearchRequest(_query.value, _statusFilter.value) },
     )
         .flatMapLatest { (query, status) ->
-            if (query.isBlank()) {
+            val searchQuery = SearchQuery(query)
+            if (!searchQuery.isValid) {
                 flowOf(SearchUiState.Idle)
             } else {
                 flow {
                     emit(SearchUiState.Loading)
-                    val state = searchCharacters(query, status).fold(
+                    val state = searchCharacters(searchQuery, status).fold(
                         ifLeft = { SearchUiState.Error(it) },
                         ifRight = { characters ->
                             if (characters.isEmpty()) SearchUiState.Empty

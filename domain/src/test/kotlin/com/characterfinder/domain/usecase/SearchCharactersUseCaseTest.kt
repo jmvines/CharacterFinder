@@ -2,6 +2,7 @@ package com.characterfinder.domain.usecase
 
 import com.characterfinder.domain.model.Character
 import com.characterfinder.domain.model.CharacterStatus
+import com.characterfinder.domain.model.SearchQuery
 import com.characterfinder.domain.repository.CharacterRepository
 import com.characterfinder.domain.result.DomainError
 import com.characterfinder.domain.result.Either
@@ -35,7 +36,7 @@ class SearchCharactersUseCaseTest {
 
     @Test
     fun `con query en blanco devuelve vacio sin tocar el repositorio`() = runTest {
-        val result = useCase("   ")
+        val result = useCase(SearchQuery("   "))
 
         assertEquals(Either.Right(emptyList<Character>()), result)
         assertTrue(repository.searchedQueries.isEmpty())
@@ -43,15 +44,15 @@ class SearchCharactersUseCaseTest {
 
     @Test
     fun `recorta los espacios antes de delegar en el repositorio`() = runTest {
-        useCase("  rick  ")
+        useCase(SearchQuery("  rick  "))
 
         assertEquals(listOf("rick"), repository.searchedQueries)
     }
 
     @Test
     fun `propaga el filtro de estado al repositorio y por defecto no filtra`() = runTest {
-        useCase("rick")
-        useCase("rick", CharacterStatus.ALIVE)
+        useCase(SearchQuery("rick"))
+        useCase(SearchQuery("rick"), CharacterStatus.ALIVE)
 
         assertEquals(listOf(null, CharacterStatus.ALIVE), repository.searchedStatuses)
     }
@@ -61,7 +62,7 @@ class SearchCharactersUseCaseTest {
         val characters = listOf(characterStub(1, "Rick Sanchez"), characterStub(2, "Rick Prime"))
         repository.result = Either.Right(characters)
 
-        assertEquals(Either.Right(characters), useCase("rick"))
+        assertEquals(Either.Right(characters), useCase(SearchQuery("rick")))
     }
 }
 
