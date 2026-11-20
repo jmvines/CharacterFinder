@@ -26,6 +26,7 @@ repositorio lo traduce a lista vacía (estado "sin resultados", no error).
 ./gradlew test                # tests de todos los módulos
 ./gradlew :app:testDebugUnitTest  # tests de presentación
 ./gradlew build               # compilación completa + tests + lint
+./gradlew connectedDebugAndroidTest  # test de instrumentación de accesibilidad (requiere dispositivo)
 ```
 
 Requiere JDK 17 o superior —el bytecode se fija a 17 en los tres módulos— y el SDK de Android
@@ -92,7 +93,7 @@ por `Mutex`.
   altera la expiración, y se inyecta como `() -> Long`, de modo que los tests mueven el tiempo
   sin esperas reales.
 
-## Tests (56)
+## Tests (56 + 1 en dispositivo)
 
 | Módulo | Qué cubre |
 |---|---|
@@ -101,6 +102,7 @@ por `Mutex`.
 | `:app` (14) | ViewModels con `coroutines-test` + Turbine. Búsqueda: **cancelación de la búsqueda anterior**, debounce, blank → Idle, sin resultados → Empty, fallo → Error, reintento tras error, **cambiar el filtro cancela la búsqueda en curso**, **cambiar el filtro a media escritura no busca con el texto anterior**, **dos cambios de filtro
 seguidos relanzan con el texto actual y sin peticiones de más**, **una respuesta rápida de una búsqueda vieja no se publica si el texto cambió durante el debounce**, el reintento conserva el filtro. Detalle: carga del id solicitado, fallo → Error, reintento tras error |
 | `:app` semantics (21) | Contrato de accesibilidad en JVM (Robolectric + compose-ui-test, sin emulador): etiquetas, live regions, encabezados de búsqueda y detalle, campos fusionados, rol de botón, posición en lista, cada resultado anunciado con sus campos etiquetados (Nombre/Especie/Estado), supercajas de filtros y de resultados con su recuento, grupo de selección única con rol radio y estado de los chips, título del detalle enfocable para recibir el foco inicial y acción Buscar del teclado |
+| `:app` androidTest (1) | Instrumentación en dispositivo real (uiautomator): la supercaja de filtros sobrevive como nodo propio en el `AccessibilityNodeInfo` de la plataforma, junto a sus chips — la capa que una suite JVM no puede ver. Corre con `connectedDebugAndroidTest`; el CI compila ese source set pero no lo ejecuta (no hay emulador) |
 
 ## Accesibilidad
 
@@ -127,8 +129,10 @@ filtros) y al entrar al detalle, en su título (no en la flecha de volver). De e
 paradas, las live regions y la información de colección (ver tabla de tests). Lo que no puede
 cubrir una suite JVM son las medidas —el inset de 1 dp— ni el foco inicial, porque
 `compose-ui-test` lee el árbol de semantics de Compose y no el `AccessibilityNodeInfo` de la
-plataforma, y bajo Robolectric la exploración táctil está apagada: esa parte se verifica a mano
-con TalkBack en dispositivo.
+plataforma, y bajo Robolectric la exploración táctil está apagada. Las medidas las fija ahora un
+test de instrumentación (`FilterSupercajaAccessibilityTest`, uiautomator) que comprueba en
+dispositivo real que la parada de filtros sobrevive como nodo propio junto a sus chips; el foco
+inicial y los anuncios se siguen verificando a mano con TalkBack.
 
 ## Integración continua
 
@@ -138,6 +142,7 @@ pestaña Actions):
 
 1. **Build completo** (`./gradlew build`): compila y ejecuta en un único paso los tests de los
    tres módulos y el lint de Android (`build` → `check` → `test`), sin correr la suite dos veces.
+   Compila también el release minificado, así que un fallo de reglas de R8 rompe el CI.
 2. Publica artifacts descargables: los dos cuando el run pasa y los informes de tests también
    cuando falla.
    - `character-finder-debug` — APK de debug instalable, para probar la app sin compilar nada.
@@ -169,3 +174,11 @@ Corre en `ubuntu-latest` con JDK 17 (Temurin) y caché de Gradle entre runs, y d
 - **Material 3 con los esquemas de color por defecto**, claro y oscuro según el ajuste del
   sistema (`isSystemInDarkTheme`), y pantallas deliberadamente sobrias: el enunciado pide
   claridad, no diseño avanzado.
+- **Release minificado con R8** (`isMinifyEnabled = true` + `proguard-android-optimize.txt`) y
+  reglas explícitas en `app/proguard-rules.pro` para kotlinx.serialization — los DTOs y los
+  `NavKey` `@Serializable` de Navigation 3 viven de la reflexión del plugin —. Verificado en
+  dispositivo con el APK de release: búsqueda, detalle y restauración tras muerte de proceso,
+  sin errores de serialización.
+- **Orientación vertical fija** (`screenOrientation="portrait"`): pantallas de lista y detalle
+  pensadas para uso en vertical; es deliberada, y los avisos de lint que genera
+  (`LockedOrientationActivity`, `DiscouragedApi`) están aceptados.

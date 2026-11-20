@@ -31,6 +31,7 @@ sobre todo lo que parece mejorable y no lo es.
 ./gradlew :app:testDebugUnitTest      # solo presentación, incluida la semántica de accesibilidad
 ./gradlew build                       # compila, pasa los tests y el lint de Android
 ./gradlew installDebug                # instala en el dispositivo conectado
+./gradlew connectedDebugAndroidTest   # test de instrumentación en el dispositivo conectado
 
 ./gradlew :app:testDebugUnitTest --tests '*SearchScreenSemanticsTest*' --rerun-tasks
 ```
@@ -51,7 +52,8 @@ sobre todo lo que parece mejorable y no lo es.
   lint. Solo bloquean los **errores** de lint.
 - Los tests de semántica solo existen en la variante debug, así que un `testReleaseUnitTest`
   verde no dice nada sobre ellos.
-- `installDebug` instala en un dispositivo real: pide confirmación antes de lanzarlo.
+- `installDebug` y `connectedDebugAndroidTest` usan un dispositivo real: pide confirmación antes
+  de lanzarlos.
 - **JDK 17 o superior** para ejecutar Gradle: el CI usa Temurin 17 y en local se compila con
   21. El bytecode se fija a 17 en los tres módulos (`sourceCompatibility`/`targetCompatibility`
   y `jvmTarget`); no hay `jvmToolchain` y no hace falta añadirlo.
@@ -66,8 +68,9 @@ sobre todo lo que parece mejorable y no lo es.
   mensaje del commit, no al source.
 - Identificadores de producción en inglés. **Los nombres de test son la excepción**: una frase en
   español entre backticks y sin tildes, describiendo el comportamiento
-  (``fun `el debounce agrupa el tecleo en una sola busqueda`()``). Todos los tests del
-  repositorio siguen ese patrón.
+  (``fun `el debounce agrupa el tecleo en una sola busqueda`()``). Los tests JVM siguen ese
+  patrón; en `androidTest` el runner de dispositivo no admite espacios en el nombre del método,
+  así que allí la frase va en camelCase, también en español.
 - La UI es monolingüe en español: `app/src/main/res/values/strings.xml` es el único locale, no
   hay `values-en`. Un string nuevo se escribe en español y se lee con `stringResource` /
   `pluralStringResource`; no hay literales de texto en el código.
@@ -123,6 +126,7 @@ sobre todo lo que parece mejorable y no lo es.
 | `domain/src/test`, `data/src/test` | lógica de dominio, caché y repositorio, con fakes |
 | `app/src/test` | ViewModels, con `coroutines-test` + Turbine |
 | `app/src/testDebug` | contrato de accesibilidad con Robolectric + `compose-ui-test` |
+| `app/src/androidTest` | instrumentación en dispositivo real (`uiautomator`), vía `connectedDebugAndroidTest`; el CI lo compila pero no lo ejecuta |
 
 - La semántica vive en `testDebug` porque `ui-test-manifest` entra como `debugImplementation`:
   en la variante release no hay actividad de test donde montar el Compose.
@@ -169,8 +173,12 @@ regions y el `collectionInfo` / `collectionItemInfo`. **No** fijan las medidas: 
 aserción sobre el inset de 1 dp ni sobre los 15 dp, y no puede haberla de forma significativa,
 porque `compose-ui-test` lee el árbol de semantics de Compose y la deduplicación de nodos con
 límites idénticos ocurre más abajo, en el `AccessibilityNodeInfo` que consume TalkBack. Si los
-normalizas a 16 dp la suite sigue verde y el recorrido se rompe en el dispositivo: esa parte se
-verifica a mano con un lector de pantalla.
+normalizas a 16 dp la suite JVM sigue verde y el recorrido se rompe en el dispositivo. Esa capa
+la fija `FilterSupercajaAccessibilityTest` (`app/src/androidTest`, uiautomator), que comprueba
+sobre el `AccessibilityNodeInfo` real que la parada de filtros sobrevive como nodo propio junto
+a sus chips — pero corre solo con `connectedDebugAndroidTest` y un dispositivo conectado, no en
+el CI. Los anuncios y el recorrido con TalkBack de verdad se siguen verificando a mano con un
+lector de pantalla.
 
 Lo mismo con el foco inicial (campo de búsqueda al abrir, título al entrar al detalle): se pide
 con `FocusRequester` solo cuando hay exploración táctil activa, y bajo Robolectric esa rama no
@@ -206,8 +214,13 @@ antes.
    de lint, no los warnings de la lista de arriba.
 3. Si el cambio toca strings, actualiza en el mismo commit las aserciones de
    `app/src/testDebug` que los citan literalmente.
-4. Si el cambio toca la UI o la semántica, repasa la sección de accesibilidad: las medidas y el
-   foco inicial no los cubre la suite y se comprueban a mano con un lector de pantalla.
+4. Si el cambio toca la UI o la semántica, repasa la sección de accesibilidad: las medidas las
+   cubre solo el test de instrumentación (`connectedDebugAndroidTest`, con dispositivo) y el foco
+   inicial se comprueba a mano con un lector de pantalla.
+5. Si el cambio toca clases `@Serializable`, dependencias o el build de release:
+   `./gradlew :app:assembleRelease`. El release va minificado con R8 (reglas en
+   `app/proguard-rules.pro`) y un fallo de reglas solo asoma ahí (`missing_rules.txt` en
+   `app/build/outputs/mapping/release/`).
 
 ## Alcance de los cambios
 
