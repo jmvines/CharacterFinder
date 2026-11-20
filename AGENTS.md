@@ -179,6 +179,14 @@ bandera, porque al reentrar sí interesa volver a pedirlo.
 no lea nombre y especie dos veces, una por el texto y otra por la descripción compuesta. No lo
 cambies por `semantics(mergeDescendants = true)`; está fijado por test.
 
+## Seguridad
+
+No hay secretos que proteger: la API de Rick & Morty es pública, sin clave ni registro, y la app
+no maneja datos de usuario ni credenciales. El único fichero local con información de la máquina
+es `local.properties` (la ruta del SDK), ya cubierto por `.gitignore`. No añadas claves, tokens
+ni endpoints privados; si un cambio los necesitara, es un cambio de alcance que hay que discutir
+antes.
+
 ## Git
 
 - Haz stage **por fichero explícito**. Nunca `git add .` ni por directorio: el árbol de trabajo
