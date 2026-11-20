@@ -28,7 +28,7 @@ repositorio lo traduce a lista vacía (estado "sin resultados", no error).
 ./gradlew build               # compilación completa + tests + lint
 ```
 
-Requiere JDK 17 y el SDK de Android (`compileSdk` 36). No necesita ninguna clave ni configuración.
+Requiere JDK 17 y el SDK de Android (`compileSdk` 37). No necesita ninguna clave ni configuración.
 
 ## Arquitectura
 
@@ -101,10 +101,13 @@ de resultados ("elemento N de M") vía `collectionInfo`/`collectionItemInfo`. La
 filtros es una parada propia del recorrido que **engloba los cuatro chips** y se anuncia
 como "Filtro de estado del personaje, 4 opciones"; después el foco entra chip a chip, con **rol radio y
 grupo de selección única** (`selectableGroup`), dejando claro que son excluyentes y cuál
-está activo. Esa parada es un **nodo hoja** con la etiqueta dibujado tras los chips —
-TalkBack salta en la navegación lineal los contenedores cuyos hijos ya son enfocables,
-pero nunca una hoja con contenido, y al ir detrás no interfiere con la exploración táctil
-de los chips. La lista de resultados tiene su parada equivalente ("Lista de resultados,
+está activo. Esa parada es un **nodo hoja** superpuesto al grupo (`matchParentSize`) con la
+etiqueta como `contentDescription` — TalkBack salta en la navegación lineal los contenedores
+cuyos hijos ya son enfocables, pero nunca una hoja con contenido. Se declara antes de los chips,
+de modo que queda por debajo en el dibujado y la exploración táctil sigue cayendo en ellos,
+mientras un `traversalIndex` negativo dentro del `isTraversalGroup` la sitúa delante de ellos en
+el recorrido lineal; el inset de 1 dp que envuelve el contenido evita que los chips queden con
+los mismos límites que la hoja. La lista de resultados tiene su parada equivalente ("Lista de resultados,
 N personajes") antes de entrar personaje a personaje, y cada resultado se anuncia con sus
 campos etiquetados ("Nombre: … Especie: … Estado: …") en vez del texto visual a secas.
 Con un lector activo, el foco inicial
