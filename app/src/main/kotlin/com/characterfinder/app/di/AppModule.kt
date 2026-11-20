@@ -4,7 +4,7 @@ import com.characterfinder.app.ui.detail.DetailViewModel
 import com.characterfinder.app.ui.search.SearchViewModel
 import com.characterfinder.domain.usecase.GetCharacterDetailUseCase
 import com.characterfinder.domain.usecase.SearchCharactersUseCase
-import org.koin.androidx.viewmodel.dsl.viewModel
+import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 
 val appModule = module {
