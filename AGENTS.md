@@ -28,6 +28,8 @@ lo que parece mejorable y no lo es.
 ./gradlew :app:testDebugUnitTest      # solo presentación, incluida la semántica de accesibilidad
 ./gradlew build                       # compila, pasa los tests y el lint de Android
 ./gradlew installDebug                # instala en el dispositivo conectado
+
+./gradlew :app:testDebugUnitTest --tests '*SearchScreenSemanticsTest*' --rerun-tasks
 ```
 
 - En local usa `--rerun-tasks` (o `cleanTest test`) y comprueba los XML de
@@ -85,7 +87,7 @@ lo que parece mejorable y no lo es.
   dupliques el predicado en ViewModels ni en casos de uso.
 - Dobles de test escritos a mano (fakes), sin librerías de mocking.
 
-## Dos refactors "obvios" que son bugs
+## Refactors "obvios" que son bugs
 
 - **El pipeline de `SearchViewModel` son dos ramas con `merge`, no un `combine`.** El texto
   entra debounceado y el filtro entra inmediato, cada rama emparejando el valor *actual* de la
@@ -93,6 +95,12 @@ lo que parece mejorable y no lo es.
   último texto ya debounceado —el anterior— y lanzaría la petición con el texto viejo. Ese bug
   existió y está cubierto por un test dedicado en `SearchViewModelTest` ("cambiar el filtro
   con texto a medio escribir no lanza busqueda con el texto anterior").
+- **`CancellationException` se relanza antes del `catch (e: Exception)`** en los dos métodos de
+  `CharacterRepositoryImpl`. Cancelar la búsqueda en curso es el caso normal al teclear: sin ese
+  `catch` previo, cada pulsación acabaría publicando un `DomainError` en la pantalla. No unifiques
+  los dos `catch`.
+- **El 404 de la API significa "sin resultados", no error**, y la lista vacía también se cachea.
+  No lo conviertas en `DomainError`.
 - **`SearchCache` usa `LinkedHashMap(16, 0.75f, true)` y un reloj monótono inyectado.** El
   tercer parámetro activa el orden por acceso: es lo que convierte el mapa en LRU al descartar
   la entrada más antigua al pasar de 64. Y el reloj es `System.nanoTime()`, no
@@ -110,9 +118,19 @@ lo que parece mejorable y no lo es.
 
 - La semántica vive en `testDebug` porque `ui-test-manifest` entra como `debugImplementation`:
   en la variante release no hay actividad de test donde montar el Compose.
-- Esos tests llevan `@Config(sdk = [35], application = android.app.Application::class)`. La
-  `Application` genérica es deliberada: `CharacterFinderApp` llama a `startKoin`, y arrancarlo
-  por partida doble en cada test rompe la ejecución.
+- Un test de semántica nuevo copia el encabezado entero: `@RunWith(RobolectricTestRunner::class)`,
+  `@GraphicsMode(GraphicsMode.Mode.NATIVE)`,
+  `@Config(sdk = [35], application = android.app.Application::class)` y
+  `@get:Rule val compose = createComposeRule()`. Sin `GraphicsMode.NATIVE` no se renderiza el
+  Compose y el fallo no apunta a la causa. La `Application` genérica es deliberada:
+  `CharacterFinderApp` llama a `startKoin`, y arrancarlo por partida doble rompe la ejecución.
+  Los strings se resuelven porque `app/build.gradle.kts` activa
+  `testOptions.unitTests.isIncludeAndroidResources`.
+- `app/src/test` es visible desde `app/src/testDebug`, **nunca al revés**: un helper puesto en
+  `testDebug` no compila en `testReleaseUnitTest`. Los módulos tampoco comparten código de test.
+  Por eso los stubs de `Character` están repetidos por source set: no los centralices.
+- `./gradlew test` ejecuta los tests de ViewModel **dos veces**, en la variante debug y en la
+  release; los de semántica solo existen en debug.
 - **Los tests de semántica asertan los literales de `strings.xml`**, no los ids de recurso:
   buscan los nodos con `onNodeWithText("Busca un personaje")` o por la etiqueta completa del
   grupo de filtros. Cambiar la redacción de un string rompe esas aserciones y hay que
@@ -148,7 +166,13 @@ verifica a mano con un lector de pantalla.
 
 Lo mismo con el foco inicial (campo de búsqueda al abrir, título al entrar al detalle): se pide
 con `FocusRequester` solo cuando hay exploración táctil activa, y bajo Robolectric esa rama no
-se ejecuta. El test únicamente comprueba que el nodo es enfocable.
+se ejecuta. El test únicamente comprueba que el nodo es enfocable. Además se pide **una sola
+vez**, con una bandera en `rememberSaveable`, para no robar el foco al recomponer ni al volver
+del detalle.
+
+`CharacterRow` lleva `clearAndSetSemantics`: saca el texto visual del árbol para que el lector
+no lea nombre y especie dos veces, una por el texto y otra por la descripción compuesta. No lo
+cambies por `semantics(mergeDescendants = true)`; está fijado por test.
 
 ## Git
 
