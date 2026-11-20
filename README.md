@@ -129,10 +129,11 @@ filtros) y al entrar al detalle, en su título (no en la flecha de volver). De e
 paradas, las live regions y la información de colección (ver tabla de tests). Lo que no puede
 cubrir una suite JVM son las medidas —el inset de 1 dp— ni el foco inicial, porque
 `compose-ui-test` lee el árbol de semantics de Compose y no el `AccessibilityNodeInfo` de la
-plataforma, y bajo Robolectric la exploración táctil está apagada. Las medidas las fija ahora un
-test de instrumentación (`FilterSupercajaAccessibilityTest`, uiautomator) que comprueba en
-dispositivo real que la parada de filtros sobrevive como nodo propio junto a sus chips; el foco
-inicial y los anuncios se siguen verificando a mano con TalkBack.
+plataforma, y bajo Robolectric la exploración táctil está apagada. Ese árbol de la plataforma sí
+lo recorre un test de instrumentación (`FilterSupercajaAccessibilityTest`, uiautomator), que
+comprueba en dispositivo real que la parada de filtros sobrevive como nodo propio junto a sus
+chips; las medidas en sí, el foco inicial y los anuncios se siguen verificando a mano con
+TalkBack.
 
 ## Integración continua
 

@@ -170,15 +170,17 @@ N personajes"). El montaje es el mismo en los dos sitios:
 **Qué cubren los tests y qué no.** Los tests de `app/src/testDebug` fijan las etiquetas, el
 `traversalIndex` de las dos paradas, el `selectableGroup`, el rol radio de los chips, las live
 regions y el `collectionInfo` / `collectionItemInfo`. **No** fijan las medidas: no hay ninguna
-aserción sobre el inset de 1 dp ni sobre los 15 dp, y no puede haberla de forma significativa,
-porque `compose-ui-test` lee el árbol de semantics de Compose y la deduplicación de nodos con
-límites idénticos ocurre más abajo, en el `AccessibilityNodeInfo` que consume TalkBack. Si los
-normalizas a 16 dp la suite JVM sigue verde y el recorrido se rompe en el dispositivo. Esa capa
-la fija `FilterSupercajaAccessibilityTest` (`app/src/androidTest`, uiautomator), que comprueba
-sobre el `AccessibilityNodeInfo` real que la parada de filtros sobrevive como nodo propio junto
-a sus chips — pero corre solo con `connectedDebugAndroidTest` y un dispositivo conectado, no en
-el CI. Los anuncios y el recorrido con TalkBack de verdad se siguen verificando a mano con un
-lector de pantalla.
+aserción sobre el inset de 1 dp ni sobre los 15 dp, y una suite JVM no puede tenerla: `compose-ui-test`
+lee el árbol de semantics de Compose, y la deduplicación de nodos con límites idénticos ocurre
+más abajo, en el `AccessibilityNodeInfo` que consume TalkBack. Si los normalizas a 16 dp la
+suite JVM sigue verde. Esa capa de abajo sí la recorre `FilterSupercajaAccessibilityTest`
+(`app/src/androidTest`, uiautomator), que comprueba sobre el `AccessibilityNodeInfo` real que la
+parada de filtros sobrevive como nodo propio junto a sus chips; corre solo con
+`connectedDebugAndroidTest` y un dispositivo conectado, nunca en el CI. Cuidado con lo que ese
+test demuestra: que la parada llega al árbol de la plataforma. **No** está comprobado que falle
+al quitar el inset de 1 dp, así que no lo cites como garantía de la medida. Mientras no exista
+ese control negativo, el inset y los 15 dp los sostiene la verificación a mano con un lector de
+pantalla, igual que los anuncios y el recorrido.
 
 Lo mismo con el foco inicial (campo de búsqueda al abrir, título al entrar al detalle): se pide
 con `FocusRequester` solo cuando hay exploración táctil activa, y bajo Robolectric esa rama no
@@ -214,9 +216,9 @@ antes.
    de lint, no los warnings de la lista de arriba.
 3. Si el cambio toca strings, actualiza en el mismo commit las aserciones de
    `app/src/testDebug` que los citan literalmente.
-4. Si el cambio toca la UI o la semántica, repasa la sección de accesibilidad: las medidas las
-   cubre solo el test de instrumentación (`connectedDebugAndroidTest`, con dispositivo) y el foco
-   inicial se comprueba a mano con un lector de pantalla.
+4. Si el cambio toca la UI o la semántica, repasa la sección de accesibilidad: el árbol de
+   accesibilidad real solo lo ve el test de instrumentación (`connectedDebugAndroidTest`, con
+   dispositivo), y las medidas y el foco inicial se comprueban a mano con un lector de pantalla.
 5. Si el cambio toca clases `@Serializable`, dependencias o el build de release:
    `./gradlew :app:assembleRelease`. El release va minificado con R8 (reglas en
    `app/proguard-rules.pro`) y un fallo de reglas solo asoma ahí (`missing_rules.txt` en
