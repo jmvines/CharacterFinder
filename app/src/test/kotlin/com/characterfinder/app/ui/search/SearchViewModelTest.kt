@@ -79,6 +79,27 @@ class SearchViewModelTest {
     }
 
     @Test
+    fun `una respuesta rapida de una busqueda vieja no se publica si el texto cambio durante el debounce`() = runTest {
+        repository.responseDelayMillis = 100
+        val viewModel = viewModel()
+
+        viewModel.uiState.test {
+            assertEquals(SearchUiState.Idle, awaitItem())
+
+            viewModel.onQueryChange("rick")
+            advanceTimeBy(350)
+            viewModel.onQueryChange("morty")
+            advanceTimeBy(2_000)
+
+            assertEquals(SearchUiState.Loading, awaitItem())
+            val success = awaitItem() as SearchUiState.Success
+            assertEquals(listOf("morty"), success.characters.map { it.name })
+            assertEquals(listOf("rick"), repository.cancelledQueries)
+            expectNoEvents()
+        }
+    }
+
+    @Test
     fun `el debounce agrupa el tecleo en una sola busqueda`() = runTest {
         val viewModel = viewModel()
 

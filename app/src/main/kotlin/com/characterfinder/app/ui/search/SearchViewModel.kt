@@ -8,14 +8,13 @@ import com.characterfinder.domain.result.DomainError
 import com.characterfinder.domain.result.fold
 import com.characterfinder.domain.usecase.SearchCharactersUseCase
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.flatMapLatest
@@ -37,20 +36,21 @@ class SearchViewModel(
 
     private val retryTrigger = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
 
-    @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
+    @OptIn(ExperimentalCoroutinesApi::class)
     val uiState: StateFlow<SearchUiState> = merge(
         merge(
-            _query.debounce(DEBOUNCE_MILLIS).map { SearchRequest(it, _statusFilter.value) },
-            _statusFilter.drop(1).map { SearchRequest(_query.value, it) },
+            _query.map { SearchRequest(it, _statusFilter.value, debounced = true) },
+            _statusFilter.drop(1).map { SearchRequest(_query.value, it, debounced = false) },
         ).distinctUntilChanged(),
-        retryTrigger.map { SearchRequest(_query.value, _statusFilter.value) },
+        retryTrigger.map { SearchRequest(_query.value, _statusFilter.value, debounced = false) },
     )
-        .flatMapLatest { (query, status) ->
+        .flatMapLatest { (query, status, debounced) ->
             val searchQuery = SearchQuery(query)
             if (!searchQuery.isValid) {
                 flowOf(SearchUiState.Idle)
             } else {
                 flow {
+                    if (debounced) delay(DEBOUNCE_MILLIS)
                     emit(SearchUiState.Loading)
                     val state = searchCharacters(searchQuery, status).fold(
                         ifLeft = { SearchUiState.Error(it) },
@@ -77,7 +77,11 @@ class SearchViewModel(
         retryTrigger.tryEmit(Unit)
     }
 
-    private data class SearchRequest(val query: String, val status: CharacterStatus?)
+    private data class SearchRequest(
+        val query: String,
+        val status: CharacterStatus?,
+        val debounced: Boolean,
+    )
 
     private companion object {
         const val DEBOUNCE_MILLIS = 300L
