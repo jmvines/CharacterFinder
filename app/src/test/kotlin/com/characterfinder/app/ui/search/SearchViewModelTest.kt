@@ -203,6 +203,33 @@ class SearchViewModelTest {
     }
 
     @Test
+    fun `cada cambio de filtro relanza con el texto actual sin peticiones de mas`() = runTest {
+        val viewModel = viewModel()
+
+        viewModel.uiState.test {
+            assertEquals(SearchUiState.Idle, awaitItem())
+
+            viewModel.onQueryChange("rick")
+            advanceTimeBy(400)
+            assertEquals(SearchUiState.Loading, awaitItem())
+            awaitItem() as SearchUiState.Success
+
+            viewModel.onStatusFilterChange(CharacterStatus.ALIVE)
+            advanceTimeBy(400)
+            assertEquals(SearchUiState.Loading, awaitItem())
+            awaitItem() as SearchUiState.Success
+
+            viewModel.onStatusFilterChange(CharacterStatus.DEAD)
+            advanceTimeBy(400)
+            assertEquals(SearchUiState.Loading, awaitItem())
+            awaitItem() as SearchUiState.Success
+
+            assertEquals(listOf("rick", "rick", "rick"), repository.searchedQueries)
+            assertEquals(listOf(null, CharacterStatus.ALIVE, CharacterStatus.DEAD), repository.searchedStatuses)
+        }
+    }
+
+    @Test
     fun `el reintento tras un error conserva el filtro activo`() = runTest {
         var failing = true
         repository.resultForQuery = { query ->
