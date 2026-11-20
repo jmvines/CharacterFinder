@@ -224,6 +224,27 @@ class SearchViewModelTest {
     }
 
     @Test
+    fun `cambiar el filtro durante el debounce inicial busca con el texto ya tecleado`() = runTest {
+        val viewModel = viewModel()
+
+        viewModel.uiState.test {
+            assertEquals(SearchUiState.Idle, awaitItem())
+
+            viewModel.onQueryChange("rick")
+            advanceTimeBy(100)
+            viewModel.onStatusFilterChange(CharacterStatus.ALIVE)
+            advanceTimeBy(400)
+
+            assertEquals(SearchUiState.Loading, awaitItem())
+            val success = awaitItem() as SearchUiState.Success
+            assertEquals(listOf("rick"), success.characters.map { it.name })
+
+            assertEquals(listOf("rick"), repository.searchedQueries)
+            assertEquals(listOf(CharacterStatus.ALIVE), repository.searchedStatuses)
+        }
+    }
+
+    @Test
     fun `cada cambio de filtro relanza con el texto actual sin peticiones de mas`() = runTest {
         val viewModel = viewModel()
 
