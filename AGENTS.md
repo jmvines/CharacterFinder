@@ -14,11 +14,11 @@ sobre todo lo que parece mejorable y no lo es.
 :app  (Android, Compose)  ──▶  :domain  (Kotlin puro)  ◀──  :data  (Kotlin puro)
 ```
 
-- `:domain` y `:data` aplican solo el plugin `kotlin-jvm`, así que cualquier uso de una API de
-  Android no compila. Eso es lo único que impide el toolchain: las librerías de infraestructura
-  (red, DI, serialización) **sí compilarían** si alguien las añadiera a `:domain`. Que no estén
-  es una convención que se revisa a mano en `domain/build.gradle.kts`; no hay test de
-  arquitectura que la vigile.
+- `:domain` y `:data` aplican `kotlin-jvm` y no el plugin de Android (`:data` suma además
+  `kotlin-serialization`), así que cualquier uso de una API de Android no compila. Es lo único
+  que bloquea la compilación: las librerías de infraestructura (red, DI, serialización) **sí
+  compilarían** si alguien las añadiera a `:domain`. Que no estén es una convención que se revisa
+  a mano en `domain/build.gradle.kts`; no hay test de arquitectura que la vigile.
 - `:data` depende de `:domain` (`api`), nunca al revés.
 - `:app` incluye `:data` en Gradle solo para registrar su módulo de Koin al arrancar
   (`CharacterFinderApp`). Fuera de ese punto no toca Retrofit, los DTOs ni la caché: las
@@ -39,17 +39,15 @@ sobre todo lo que parece mejorable y no lo es.
 - En local usa `--rerun-tasks` (o `cleanTest test`) y comprueba los XML de
   `*/build/test-results/**/TEST-*.xml`: un `UP-TO-DATE` de Gradle puede dar por bueno un run que
   no ha ejecutado nada, y la salida de consola no lo distingue. El CI corre solo
-  `./gradlew build`, que ejecuta también los tests vía `check`, y le basta sin `--rerun-tasks`
-  porque cada run clona el repositorio limpio y no hay `build/` previo que reutilizar.
-- `./gradlew build` ejecuta también los tests (`build` → `check` → `test`): no es solo compilar.
-- Ese build sale verde **con warnings de lint conocidos y aceptados** —trece hoy, de los que
-  siete son `GradleDependency` y `AndroidGradlePluginVersion` por versiones más nuevas, así que
-  el número sube solo—: `OldTargetApi` por `targetSdk 36`, `LockedOrientationActivity` y
-  `DiscouragedApi` por el `screenOrientation="portrait"` del manifiesto (el retrato es
-  deliberado), `PluralsCandidate` en `filter_group_label`, `ObsoleteSdkInt` en
-  `mipmap-anydpi-v26` y un `Typos` que toma «momento» por un «memento» mal escrito. No los
-  "arregles": no subas versiones, no quites la orientación fija y no reescribas strings por
-  lint. Solo bloquean los **errores** de lint.
+  `./gradlew build` (`build` → `check` → `test`: no es solo compilar), y le basta sin
+  `--rerun-tasks` porque cada run clona el repositorio limpio y no hay `build/` previo que reutilizar.
+- Ese build sale verde **con warnings de lint conocidos y aceptados**. No los "arregles" (no subas
+  versiones, no quites la orientación fija, no reescribas strings por lint); solo bloquean los
+  **errores** de lint, no los warnings. Los conocidos:
+  - `GradleDependency` / `AndroidGradlePluginVersion`: hay versiones más nuevas (el número sube solo).
+  - `OldTargetApi`: `targetSdk 36`.
+  - `LockedOrientationActivity`, `DiscouragedApi`: `screenOrientation="portrait"` (deliberado).
+  - `PluralsCandidate` (`filter_group_label`), `ObsoleteSdkInt` (`mipmap-anydpi-v26`), `Typos` (falso positivo).
 - Los tests de semántica solo existen en la variante debug, así que un `testReleaseUnitTest`
   verde no dice nada sobre ellos.
 - `installDebug` y `connectedDebugAndroidTest` usan un dispositivo real: pide confirmación antes
@@ -91,33 +89,10 @@ sobre todo lo que parece mejorable y no lo es.
 - Errores: `Either<DomainError, T>` atravesando capas, no excepciones. El mapeo a texto está
   centralizado en `DomainError.messageRes()` (`ui/ErrorMessages.kt`); si añades un caso a
   `DomainError`, el `when` exhaustivo te obliga a darle mensaje.
-- La validez de una búsqueda vive **solo** en el value class `SearchQuery` del dominio. No
-  dupliques el predicado en ViewModels ni en casos de uso.
+- La **definición** de validez de una búsqueda vive **solo** en el value class `SearchQuery` del
+  dominio; invocarla desde el ViewModel y el caso de uso es deliberado. No dupliques el predicado
+  fuera de `SearchQuery`.
 - Dobles de test escritos a mano (fakes), sin librerías de mocking.
-
-## Refactors "obvios" que son bugs
-
-- **El `delay` del debounce vive dentro del `flatMapLatest` y el pipeline de `SearchViewModel`
-  son dos ramas con `merge`, no un `combine`.** Cada tecla emite un request al instante,
-  `flatMapLatest` cancela la búsqueda en vuelo —espera incluida— y solo la rama del tecleo
-  (`debounced = true` en `SearchRequest`) duerme 300 ms antes de pedir; el filtro y el retry
-  entran inmediatos, emparejados con el texto actual. Los dos refactors "obvios" aquí
-  reintroducen bugs que ya existieron y tienen test de regresión en `SearchViewModelTest`: subir
-  un `.debounce(300)` al flow del texto deja viva la búsqueda anterior durante la ventana de
-  300 ms y publica su resultado con el campo ya cambiado, y un `combine` de las dos fuentes
-  empareja el filtro nuevo con el último texto debounceado —el anterior—, no con el actual.
-- **`CancellationException` se relanza antes del `catch (e: Exception)`** en los dos métodos de
-  `CharacterRepositoryImpl`. Cancelar la búsqueda en curso es el caso normal al teclear: sin ese
-  `catch` previo, cada pulsación acabaría publicando un `DomainError` en la pantalla. No unifiques
-  los dos `catch`.
-- **El 404 de la API significa "sin resultados", no error**, y la lista vacía también se cachea.
-  No lo conviertas en `DomainError`.
-- **`SearchCache` usa `LinkedHashMap(16, 0.75f, true)` y un reloj monótono inyectado.** El
-  tercer parámetro activa el orden por acceso: es lo que convierte el mapa en LRU al descartar
-  la entrada más antigua al pasar de 64. Y el reloj es `System.nanoTime()`, no
-  `currentTimeMillis`, para que un cambio de hora del dispositivo no altere la expiración;
-  llega como `() -> Long` para que los tests muevan el tiempo sin esperas. No "simplifiques"
-  ninguna de las tres cosas.
 
 ## Tests
 
@@ -126,7 +101,7 @@ sobre todo lo que parece mejorable y no lo es.
 | `domain/src/test`, `data/src/test` | lógica de dominio, caché y repositorio, con fakes |
 | `app/src/test` | ViewModels, con `coroutines-test` + Turbine |
 | `app/src/testDebug` | contrato de accesibilidad con Robolectric + `compose-ui-test` |
-| `app/src/androidTest` | instrumentación en dispositivo real (`uiautomator`), vía `connectedDebugAndroidTest`; el CI lo compila pero no lo ejecuta |
+| `app/src/androidTest` | instrumentación en dispositivo real (`uiautomator`), vía `connectedDebugAndroidTest`; el CI no lo compila ni lo ejecuta, solo lint lo analiza |
 
 - La semántica vive en `testDebug` porque `ui-test-manifest` entra como `debugImplementation`:
   en la variante release no hay actividad de test donde montar el Compose.
@@ -160,7 +135,7 @@ N personajes"). El montaje es el mismo en los dos sitios:
 - Un `Box` padre marcado con `isTraversalGroup = true`.
 - Dentro, un `Box` hermano con `matchParentSize()` y
   `semantics(mergeDescendants = true) { traversalIndex = -1f; contentDescription = … }`: ese nodo
-  vacío **es** la parada, y el `traversalIndex` negativo la coloca delante de sus hermanos.
+  hoja **es** la parada, y el `traversalIndex` negativo la coloca delante de sus hermanos.
 - El contenido real envuelto en `Box(Modifier.padding(1.dp))`. Ese inset de 1 dp evita que los
   hijos queden con los mismos límites que la superficie etiquetada; sin él la parada no se
   anuncia como nodo propio.
@@ -169,18 +144,14 @@ N personajes"). El montaje es el mismo en los dos sitios:
 
 **Qué cubren los tests y qué no.** Los tests de `app/src/testDebug` fijan las etiquetas, el
 `traversalIndex` de las dos paradas, el `selectableGroup`, el rol radio de los chips, las live
-regions y el `collectionInfo` / `collectionItemInfo`. **No** fijan las medidas: no hay ninguna
-aserción sobre el inset de 1 dp ni sobre los 15 dp, y una suite JVM no puede tenerla: `compose-ui-test`
-lee el árbol de semantics de Compose, y la deduplicación de nodos con límites idénticos ocurre
-más abajo, en el `AccessibilityNodeInfo` que consume TalkBack. Si los normalizas a 16 dp la
-suite JVM sigue verde. Esa capa de abajo sí la recorre `FilterSupercajaAccessibilityTest`
-(`app/src/androidTest`, uiautomator), que comprueba sobre el `AccessibilityNodeInfo` real que la
-parada de filtros sobrevive como nodo propio junto a sus chips; corre solo con
-`connectedDebugAndroidTest` y un dispositivo conectado, nunca en el CI. Ese test tiene control
-negativo verificado: quitar el inset de 1 dp de la supercaja de filtros lo pone en rojo, así que
-esa medida sí está fijada por test — pero solo en la de filtros. La parada equivalente de la
-lista de resultados no tiene test de instrumentación, y sus medidas, los anuncios y el recorrido
-completo siguen sosteniéndose con la verificación a mano con un lector de pantalla.
+regions y el `collectionInfo` / `collectionItemInfo`. **No** fijan las medidas (el inset de 1 dp
+ni los 15 dp): `compose-ui-test` lee el árbol de semantics, y la deduplicación de nodos con
+límites idénticos ocurre más abajo, en el `AccessibilityNodeInfo` que consume TalkBack —si los
+normalizas a 16 dp la suite JVM sigue verde—. Esa capa sí la recorre `FilterSupercajaAccessibilityTest`
+(`app/src/androidTest`, uiautomator, solo con `connectedDebugAndroidTest` y dispositivo), con
+control negativo verificado: quitar el inset de 1 dp de la supercaja de filtros lo pone en rojo,
+así que esa medida está fijada por test — pero solo en la de filtros. La parada de la lista de
+resultados, sus medidas y los anuncios se siguen verificando a mano con un lector de pantalla.
 
 Lo mismo con el foco inicial (campo de búsqueda al abrir, título al entrar al detalle): se pide
 con `FocusRequester` solo cuando hay exploración táctil activa, y bajo Robolectric esa rama no
