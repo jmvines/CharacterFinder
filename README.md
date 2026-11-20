@@ -57,9 +57,14 @@ El texto de búsqueda vive en un `StateFlow` en `SearchViewModel`. El pipeline
   (`flatMapLatest`), lo que aborta también su llamada HTTP (Retrofit con funciones `suspend`
   coopera con la cancelación). Nunca se publican resultados de una búsqueda obsoleta.
 
-El filtro de estado (chips Todos/Vivos/Muertos/Desconocido) entra en el mismo pipeline vía
-`combine`: cambiarlo relanza la búsqueda **sin debounce** — es un gesto deliberado, no tecleo —
-y cancela igualmente la que hubiera en curso.
+El filtro de estado (chips Todos/Vivos/Muertos/Desconocido) entra en el mismo pipeline como una
+**rama inmediata**, fusionada con la del tecleo (`merge`) y deduplicada
+(`distinctUntilChanged`): cambiarlo relanza la búsqueda **sin debounce** — es un gesto
+deliberado, no tecleo —, emparejado siempre con el texto actual del campo, y cancela igualmente
+la que hubiera en curso. Son dos ramas y no un `combine` precisamente por ese emparejamiento:
+combinando ambas fuentes, cambiar el filtro a media escritura habría emparejado el filtro nuevo
+con el último texto *ya debounceado* —el anterior— y habría disparado una petición con el texto
+viejo.
 
 Está cubierto por un test (`SearchViewModelTest`): se lanza una búsqueda lenta, se emite otra
 antes de que termine y se comprueba que la primera queda cancelada y que la UI solo recibe los
@@ -69,20 +74,22 @@ resultados de la segunda.
 
 `SearchCache` (`:data`): caché **en memoria por query normalizada** (trim + minúsculas) **y
 filtro de estado** — la misma query con filtros distintos son resultados distintos y no se
-pisan —, con **TTL de 3 minutos** y acceso protegido por `Mutex`.
+pisan —, con **TTL de 3 minutos**, **tope de 64 entradas con descarte LRU** y acceso protegido
+por `Mutex`.
 
 - Si hay entrada válida, el repositorio la devuelve **sin llamada de red**.
 - Si expiró, se elimina, se consulta la red y se refresca la entrada.
-- El reloj se inyecta como `() -> Long`, de modo que los tests de expiración mueven el tiempo
+- El reloj es **monótono** (`System.nanoTime`), de forma que un cambio de hora del dispositivo no
+  altera la expiración, y se inyecta como `() -> Long`, de modo que los tests mueven el tiempo
   sin esperas reales.
 
-## Tests (52)
+## Tests (54)
 
 | Módulo | Qué cubre |
 |---|---|
 | `:domain` (8) | `SearchQuery`: normalización y validez (única fuente de verdad de la validación del query). Casos de uso con repositorio fake: query en blanco no toca el repo, trim, delegación, propagación del filtro de estado |
-| `:data` (12) | Caché: hit dentro del TTL, expiración, entradas por query, **claves independientes por filtro de estado**. Repositorio: segunda búsqueda sin red, expiración vuelve a red, normalización de clave, filtro a la API en minúsculas, 404 → lista vacía, 5xx → `Server`, fallo de red → `Connectivity` |
-| `:app` (11) | ViewModels con `coroutines-test` + Turbine. Búsqueda: **cancelación de la búsqueda anterior**, debounce, blank → Idle, sin resultados → Empty, fallo → Error, reintento tras error, **cambiar el filtro cancela la búsqueda en curso**, el reintento conserva el filtro. Detalle: carga del id solicitado, fallo → Error, reintento tras error |
+| `:data` (13) | Caché: hit dentro del TTL, expiración, entradas por query, **claves independientes por filtro de estado**, **descarte de la entrada menos usada al superar el tope**. Repositorio: segunda búsqueda sin red, expiración vuelve a red, normalización de clave, filtro a la API en minúsculas, 404 → lista vacía, 5xx → `Server`, fallo de red → `Connectivity` |
+| `:app` (12) | ViewModels con `coroutines-test` + Turbine. Búsqueda: **cancelación de la búsqueda anterior**, debounce, blank → Idle, sin resultados → Empty, fallo → Error, reintento tras error, **cambiar el filtro cancela la búsqueda en curso**, **cambiar el filtro a media escritura no busca con el texto anterior**, el reintento conserva el filtro. Detalle: carga del id solicitado, fallo → Error, reintento tras error |
 | `:app` semantics (21) | Contrato de accesibilidad en JVM (Robolectric + compose-ui-test, sin emulador): etiquetas, live regions, encabezados de búsqueda y detalle, campos fusionados, rol de botón, posición en lista, cada resultado anunciado con sus campos etiquetados (Nombre/Especie/Estado), supercajas de filtros y de resultados con su recuento, grupo de selección única con rol radio y estado de los chips, foco inicial en el título del detalle y acción Buscar del teclado |
 
 ## Accesibilidad
