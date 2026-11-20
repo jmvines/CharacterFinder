@@ -15,6 +15,9 @@ serializationJson = "1.13.0"
 junit = "4.13.2"
 turbine = "1.2.1"
 robolectric = "4.18.1"
+androidxTestExtJunit = "1.2.1"
+androidxTestRunner = "1.6.2"
+uiautomator = "2.3.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -45,6 +48,9 @@ robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutines" }
 turbine = { module = "app.cash.turbine:turbine", version.ref = "turbine" }
+androidx-test-ext-junit = { group = "androidx.test.ext", name = "junit", version.ref = "androidxTestExtJunit" }
+androidx-test-runner = { group = "androidx.test", name = "runner", version.ref = "androidxTestRunner" }
+androidx-test-uiautomator = { group = "androidx.test.uiautomator", name = "uiautomator", version.ref = "uiautomator" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
