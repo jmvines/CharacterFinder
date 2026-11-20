@@ -26,10 +26,7 @@ jobs:
       - name: Gradle con caché de dependencias
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Tests unitarios (domain, data, app)
-        run: ./gradlew test
-
-      - name: Build completo con lint de Android
+      - name: Build completo con tests y lint de Android
         run: ./gradlew build
 
       - name: Publicar informes de tests
