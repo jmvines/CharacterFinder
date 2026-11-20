@@ -23,7 +23,7 @@ repositorio lo traduce a lista vacía (estado "sin resultados", no error).
 
 ```bash
 ./gradlew installDebug        # instalar en un dispositivo/emulador conectado
-./gradlew test                # tests de :domain y :data
+./gradlew test                # tests de todos los módulos
 ./gradlew :app:testDebugUnitTest  # tests de presentación
 ./gradlew build               # compilación completa + tests + lint
 ```
@@ -131,6 +131,9 @@ Corre en `ubuntu-latest` con JDK 17 (Temurin) y caché de Gradle entre runs, y d
 - **Errores tipados con `Either<DomainError, T>`** en vez de excepciones: `DomainError`
   distingue `Connectivity` (sin red), `Server` (5xx) y `Unexpected`, y la UI muestra un mensaje
   distinto por causa, con reintento en todos los casos.
+- **Validación como tipo (`SearchQuery`)**: la regla de qué es una búsqueda válida vive en un
+  value class del dominio; el ViewModel y el caso de uso la comparten sin duplicar el predicado
+  y la firma tipada impide pasar queries sin normalizar.
 - **Sin Room/persistencia**: el enunciado da por buena la caché en memoria; añadir disco sería
   superficie extra sin requisito que lo pida.
 - **Solo la primera página de resultados**: la API pagina de 20 en 20 (`info.next`); para el
