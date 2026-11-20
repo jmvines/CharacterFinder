@@ -176,11 +176,11 @@ más abajo, en el `AccessibilityNodeInfo` que consume TalkBack. Si los normaliza
 suite JVM sigue verde. Esa capa de abajo sí la recorre `FilterSupercajaAccessibilityTest`
 (`app/src/androidTest`, uiautomator), que comprueba sobre el `AccessibilityNodeInfo` real que la
 parada de filtros sobrevive como nodo propio junto a sus chips; corre solo con
-`connectedDebugAndroidTest` y un dispositivo conectado, nunca en el CI. Cuidado con lo que ese
-test demuestra: que la parada llega al árbol de la plataforma. **No** está comprobado que falle
-al quitar el inset de 1 dp, así que no lo cites como garantía de la medida. Mientras no exista
-ese control negativo, el inset y los 15 dp los sostiene la verificación a mano con un lector de
-pantalla, igual que los anuncios y el recorrido.
+`connectedDebugAndroidTest` y un dispositivo conectado, nunca en el CI. Ese test tiene control
+negativo verificado: quitar el inset de 1 dp de la supercaja de filtros lo pone en rojo, así que
+esa medida sí está fijada por test — pero solo en la de filtros. La parada equivalente de la
+lista de resultados no tiene test de instrumentación, y sus medidas, los anuncios y el recorrido
+completo siguen sosteniéndose con la verificación a mano con un lector de pantalla.
 
 Lo mismo con el foco inicial (campo de búsqueda al abrir, título al entrar al detalle): se pide
 con `FocusRequester` solo cuando hay exploración táctil activa, y bajo Robolectric esa rama no
@@ -218,7 +218,8 @@ antes.
    `app/src/testDebug` que los citan literalmente.
 4. Si el cambio toca la UI o la semántica, repasa la sección de accesibilidad: el árbol de
    accesibilidad real solo lo ve el test de instrumentación (`connectedDebugAndroidTest`, con
-   dispositivo), y las medidas y el foco inicial se comprueban a mano con un lector de pantalla.
+   dispositivo), que fija el inset de la supercaja de filtros; el resto de medidas y el foco
+   inicial se comprueban a mano con un lector de pantalla.
 5. Si el cambio toca clases `@Serializable`, dependencias o el build de release:
    `./gradlew :app:assembleRelease`. El release va minificado con R8 (reglas en
    `app/proguard-rules.pro`) y un fallo de reglas solo asoma ahí (`missing_rules.txt` en

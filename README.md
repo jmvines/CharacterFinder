@@ -93,13 +93,13 @@ por `Mutex`.
   altera la expiración, y se inyecta como `() -> Long`, de modo que los tests mueven el tiempo
   sin esperas reales.
 
-## Tests (56 + 1 en dispositivo)
+## Tests (57 + 1 en dispositivo)
 
 | Módulo | Qué cubre |
 |---|---|
 | `:domain` (8) | `SearchQuery`: normalización y validez (única fuente de verdad de la validación del query). Casos de uso con repositorio fake: query en blanco no toca el repo, trim, delegación, propagación del filtro de estado |
 | `:data` (13) | Caché: hit dentro del TTL, expiración, entradas por query, **claves independientes por filtro de estado**, **descarte de la entrada menos usada al superar el tope**. Repositorio: segunda búsqueda sin red, expiración vuelve a red, normalización de clave, filtro a la API en minúsculas, 404 → lista vacía, 5xx → `Server`, fallo de red → `Connectivity` |
-| `:app` (14) | ViewModels con `coroutines-test` + Turbine. Búsqueda: **cancelación de la búsqueda anterior**, debounce, blank → Idle, sin resultados → Empty, fallo → Error, reintento tras error, **cambiar el filtro cancela la búsqueda en curso**, **cambiar el filtro a media escritura no busca con el texto anterior**, **dos cambios de filtro
+| `:app` (15) | ViewModels con `coroutines-test` + Turbine. Búsqueda: **cancelación de la búsqueda anterior**, debounce, blank → Idle, sin resultados → Empty, fallo → Error, reintento tras error, **cambiar el filtro cancela la búsqueda en curso**, **cambiar el filtro a media escritura no busca con el texto anterior**, **cambiar el filtro durante el debounce inicial busca con el texto ya tecleado**, **dos cambios de filtro
 seguidos relanzan con el texto actual y sin peticiones de más**, **una respuesta rápida de una búsqueda vieja no se publica si el texto cambió durante el debounce**, el reintento conserva el filtro. Detalle: carga del id solicitado, fallo → Error, reintento tras error |
 | `:app` semantics (21) | Contrato de accesibilidad en JVM (Robolectric + compose-ui-test, sin emulador): etiquetas, live regions, encabezados de búsqueda y detalle, campos fusionados, rol de botón, posición en lista, cada resultado anunciado con sus campos etiquetados (Nombre/Especie/Estado), supercajas de filtros y de resultados con su recuento, grupo de selección única con rol radio y estado de los chips, título del detalle enfocable para recibir el foco inicial y acción Buscar del teclado |
 | `:app` androidTest (1) | Instrumentación en dispositivo real (uiautomator): la supercaja de filtros sobrevive como nodo propio en el `AccessibilityNodeInfo` de la plataforma, junto a sus chips — la capa que una suite JVM no puede ver. Corre con `connectedDebugAndroidTest`; el CI compila ese source set pero no lo ejecuta (no hay emulador) |
@@ -132,8 +132,9 @@ cubrir una suite JVM son las medidas —el inset de 1 dp— ni el foco inicial, 
 plataforma, y bajo Robolectric la exploración táctil está apagada. Ese árbol de la plataforma sí
 lo recorre un test de instrumentación (`FilterSupercajaAccessibilityTest`, uiautomator), que
 comprueba en dispositivo real que la parada de filtros sobrevive como nodo propio junto a sus
-chips; las medidas en sí, el foco inicial y los anuncios se siguen verificando a mano con
-TalkBack.
+chips — con control negativo verificado: quitar el inset de 1 dp de esa supercaja lo pone en
+rojo, así que esa medida está fijada por test. La parada equivalente de la lista de resultados,
+el foco inicial y los anuncios se siguen verificando a mano con TalkBack.
 
 ## Integración continua
 
