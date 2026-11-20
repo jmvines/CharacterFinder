@@ -167,9 +167,10 @@ verifica a mano con un lector de pantalla.
 
 Lo mismo con el foco inicial (campo de búsqueda al abrir, título al entrar al detalle): se pide
 con `FocusRequester` solo cuando hay exploración táctil activa, y bajo Robolectric esa rama no
-se ejecuta. El test únicamente comprueba que el nodo es enfocable. Además se pide **una sola
-vez**, con una bandera en `rememberSaveable`, para no robar el foco al recomponer ni al volver
-del detalle.
+se ejecuta. El test únicamente comprueba que el nodo es enfocable. En la búsqueda, además, se
+pide **una sola vez**, con una bandera en `rememberSaveable` (`initialFocusRequested`), para no
+robarlo al recomponer ni al volver del detalle; el detalle usa un `LaunchedEffect(Unit)` sin
+bandera, porque al reentrar sí interesa volver a pedirlo.
 
 `CharacterRow` lleva `clearAndSetSemantics`: saca el texto visual del árbol para que el lector
 no lea nombre y especie dos veces, una por el texto y otra por la descripción compuesta. No lo
