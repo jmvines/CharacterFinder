@@ -87,13 +87,14 @@ por `Mutex`.
   altera la expiración, y se inyecta como `() -> Long`, de modo que los tests mueven el tiempo
   sin esperas reales.
 
-## Tests (54)
+## Tests (55)
 
 | Módulo | Qué cubre |
 |---|---|
 | `:domain` (8) | `SearchQuery`: normalización y validez (única fuente de verdad de la validación del query). Casos de uso con repositorio fake: query en blanco no toca el repo, trim, delegación, propagación del filtro de estado |
 | `:data` (13) | Caché: hit dentro del TTL, expiración, entradas por query, **claves independientes por filtro de estado**, **descarte de la entrada menos usada al superar el tope**. Repositorio: segunda búsqueda sin red, expiración vuelve a red, normalización de clave, filtro a la API en minúsculas, 404 → lista vacía, 5xx → `Server`, fallo de red → `Connectivity` |
-| `:app` (12) | ViewModels con `coroutines-test` + Turbine. Búsqueda: **cancelación de la búsqueda anterior**, debounce, blank → Idle, sin resultados → Empty, fallo → Error, reintento tras error, **cambiar el filtro cancela la búsqueda en curso**, **cambiar el filtro a media escritura no busca con el texto anterior**, el reintento conserva el filtro. Detalle: carga del id solicitado, fallo → Error, reintento tras error |
+| `:app` (13) | ViewModels con `coroutines-test` + Turbine. Búsqueda: **cancelación de la búsqueda anterior**, debounce, blank → Idle, sin resultados → Empty, fallo → Error, reintento tras error, **cambiar el filtro cancela la búsqueda en curso**, **cambiar el filtro a media escritura no busca con el texto anterior**, **dos cambios de filtro
+seguidos relanzan con el texto actual y sin peticiones de más**, el reintento conserva el filtro. Detalle: carga del id solicitado, fallo → Error, reintento tras error |
 | `:app` semantics (21) | Contrato de accesibilidad en JVM (Robolectric + compose-ui-test, sin emulador): etiquetas, live regions, encabezados de búsqueda y detalle, campos fusionados, rol de botón, posición en lista, cada resultado anunciado con sus campos etiquetados (Nombre/Especie/Estado), supercajas de filtros y de resultados con su recuento, grupo de selección única con rol radio y estado de los chips, título del detalle enfocable para recibir el foco inicial y acción Buscar del teclado |
 
 ## Accesibilidad
