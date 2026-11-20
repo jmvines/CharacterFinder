@@ -35,10 +35,24 @@ lo que parece mejorable y no lo es.
   no ha ejecutado nada, y la salida de consola no lo distingue. El CI corre `./gradlew test` a
   secas porque cada run clona el repositorio limpio y no hay `build/` previo que reutilizar.
 - `./gradlew build` ejecuta también los tests (`build` → `check` → `test`): no es solo compilar.
+- Ese build sale verde **con 13 warnings de lint conocidos y aceptados**: `OldTargetApi` por
+  `targetSdk 36`, `LockedOrientationActivity` y `DiscouragedApi` por el
+  `screenOrientation="portrait"` del manifiesto (el retrato es deliberado), seis
+  `GradleDependency` y un `AndroidGradlePluginVersion` por versiones más nuevas en el catálogo,
+  `PluralsCandidate` en `filter_group_label`, `ObsoleteSdkInt` en `mipmap-anydpi-v26` y un
+  `Typos` que toma «momento» por un «memento» mal escrito. No los "arregles": no subas
+  versiones, no quites la orientación fija y no reescribas strings por lint. Solo bloquean los
+  **errores** de lint.
 - Los tests de semántica solo existen en la variante debug, así que un `testReleaseUnitTest`
   verde no dice nada sobre ellos.
 - `installDebug` instala en un dispositivo real: pide confirmación antes de lanzarlo.
-- Requiere JDK 17. `compileSdk` 37, `targetSdk` 36, `minSdk` 26.
+- **JDK 17 o superior** para ejecutar Gradle: el CI usa Temurin 17 y en local se compila con
+  21. El bytecode se fija a 17 en los tres módulos (`sourceCompatibility`/`targetCompatibility`
+  y `jvmTarget`); no hay `jvmToolchain` y no hace falta añadirlo.
+- Hace falta el **SDK de Android con la platform 37** (`compileSdk` 37, `targetSdk` 36,
+  `minSdk` 26), con `sdk.dir` en `local.properties` —ignorado por git— o `ANDROID_HOME`
+  exportado. Sin él no se configura ni `:domain`, porque el build incluye `:app`. Los tests no
+  necesitan red: todo va con fakes.
 
 ## Convenciones de código
 
@@ -55,8 +69,10 @@ lo que parece mejorable y no lo es.
     (`ui/search/SearchScreen.kt`), porque una live region no vuelve a anunciar un texto que no
     cambia.
   - `Character.status` y `Character.species` se muestran tal y como llegan de la API, en inglés
-    ("Alive", "Human"), mientras los chips de filtro están traducidos. Si alguna vez se
-    traducen, el mapeo va en presentación y hay que actualizar las aserciones de los tests.
+    ("Alive", "Human"), mientras los chips de filtro están traducidos: el enum
+    `CharacterStatus` solo se usa de salida, para el parámetro de la petición. Traducirlos es un
+    cambio de presentación, y obliga a actualizar las aserciones de los tests, que fijan esas
+    cadenas con los valores en inglés.
 - Dependencias siempre por el catálogo `gradle/libs.versions.toml` (`libs.*`), nunca coordenadas
   literales en un `build.gradle.kts`.
 - Estado de UI: `sealed interface` inmutable expuesta como `StateFlow`; nunca un flow mutable.
