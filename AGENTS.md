@@ -68,7 +68,7 @@ sobre todo lo que parece mejorable y no lo es.
   español entre backticks y sin tildes, describiendo el comportamiento
   (``fun `el debounce agrupa el tecleo en una sola busqueda`()``). Los tests JVM siguen ese
   patrón; en `androidTest` el runner de dispositivo no admite espacios en el nombre del método,
-  así que allí la frase va en camelCase, también en español.
+  así que allí los nombres van en camelCase y en inglés, como el resto de identificadores.
 - La UI es monolingüe en español: `app/src/main/res/values/strings.xml` es el único locale, no
   hay `values-en`. Un string nuevo se escribe en español y se lee con `stringResource` /
   `pluralStringResource`; no hay literales de texto en el código.
@@ -147,11 +147,13 @@ N personajes"). El montaje es el mismo en los dos sitios:
 regions y el `collectionInfo` / `collectionItemInfo`. **No** fijan las medidas (el inset de 1 dp
 ni los 15 dp): `compose-ui-test` lee el árbol de semantics, y la deduplicación de nodos con
 límites idénticos ocurre más abajo, en el `AccessibilityNodeInfo` que consume TalkBack —si los
-normalizas a 16 dp la suite JVM sigue verde—. Esa capa sí la recorre `FilterSupercajaAccessibilityTest`
-(`app/src/androidTest`, uiautomator, solo con `connectedDebugAndroidTest` y dispositivo), con
-control negativo verificado: quitar el inset de 1 dp de la supercaja de filtros lo pone en rojo,
-así que esa medida está fijada por test — pero solo en la de filtros. La parada de la lista de
-resultados, sus medidas y los anuncios se siguen verificando a mano con un lector de pantalla.
+normalizas a 16 dp la suite JVM sigue verde—. Esa capa sí la recorren `FilterGroupAccessibilityTest`
+y `ResultsGroupAccessibilityTest` (`app/src/androidTest`, uiautomator, solo con
+`connectedDebugAndroidTest` y dispositivo): comprueban que las dos paradas llegan al
+`AccessibilityNodeInfo` real junto a sus chips y filas. El control negativo está verificado en la
+de filtros —quitar su inset de 1 dp pone el test en rojo, así que esa medida está fijada—; las
+medidas de la lista de resultados y los anuncios se siguen verificando a mano con un lector de
+pantalla.
 
 Lo mismo con el foco inicial (campo de búsqueda al abrir, título al entrar al detalle): se pide
 con `FocusRequester` solo cuando hay exploración táctil activa, y bajo Robolectric esa rama no
