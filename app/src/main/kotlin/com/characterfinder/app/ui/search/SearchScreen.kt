@@ -60,11 +60,13 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.characterfinder.app.R
 import com.characterfinder.app.ui.messageRes
+import com.characterfinder.app.ui.theme.CharacterFinderTheme
 import com.characterfinder.domain.model.Character
 import com.characterfinder.domain.model.CharacterStatus
 import org.koin.androidx.compose.koinViewModel
@@ -317,5 +319,34 @@ private fun CharacterRow(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
+    }
+}
+
+@Preview
+@Composable
+private fun StatusFilterRowPreview() {
+    CharacterFinderTheme {
+        StatusFilterRow(selected = CharacterStatus.ALIVE, onSelect = {})
+    }
+}
+
+@Preview
+@Composable
+private fun CharacterRowPreview() {
+    CharacterFinderTheme {
+        CharacterRow(
+            character = Character(
+                id = 1,
+                name = "Rick Sanchez",
+                status = "Alive",
+                species = "Human",
+                gender = "Male",
+                imageUrl = "",
+                origin = "Earth (C-137)",
+                lastLocation = "Citadel of Ricks",
+                episodeCount = 51,
+            ),
+            onClick = {},
+        )
     }
 }

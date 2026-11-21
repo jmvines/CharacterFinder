@@ -42,11 +42,13 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.characterfinder.app.R
 import com.characterfinder.app.ui.messageRes
+import com.characterfinder.app.ui.theme.CharacterFinderTheme
 import com.characterfinder.domain.model.Character
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -180,5 +182,25 @@ private fun DetailField(label: String, value: String) {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Text(text = value, style = MaterialTheme.typography.bodyLarge)
+    }
+}
+
+@Preview
+@Composable
+private fun CharacterDetailPreview() {
+    CharacterFinderTheme {
+        CharacterDetail(
+            character = Character(
+                id = 1,
+                name = "Rick Sanchez",
+                status = "Alive",
+                species = "Human",
+                gender = "Male",
+                imageUrl = "",
+                origin = "Earth (C-137)",
+                lastLocation = "Citadel of Ricks",
+                episodeCount = 51,
+            ),
+        )
     }
 }
