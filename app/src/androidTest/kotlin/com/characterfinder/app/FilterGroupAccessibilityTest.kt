@@ -13,12 +13,12 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
-class FilterSupercajaAccessibilityTest {
+class FilterGroupAccessibilityTest {
 
     private lateinit var device: UiDevice
 
     @Before
-    fun lanzarApp() {
+    fun launchApp() {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         device = UiDevice.getInstance(instrumentation)
         val context = instrumentation.targetContext
@@ -29,7 +29,7 @@ class FilterSupercajaAccessibilityTest {
     }
 
     @Test
-    fun laSupercajaDeFiltrosEsUnaParadaDistintaConSusChips() {
+    fun filterGroupExposesGroupLabelAndIndividualChips() {
         assertTrue(
             device.wait(
                 Until.hasObject(By.desc("Filtro de estado del personaje, 4 opciones")),
